@@ -7,7 +7,7 @@ use crossterm::{
 use ratatui::{
     backend::CrosstermBackend,
     layout::{Alignment, Constraint, Direction, Layout},
-    style::{Color, Modifier, Style, Stylize},
+    style::{Color, Modifier, Style},
     text::{Line, Span, Text},
     widgets::{Block, BorderType, Borders, List, ListItem, Paragraph},
     Terminal,
@@ -22,6 +22,7 @@ use std::time::Duration;
 // --- Colors & Constants ---
 const CLAUDE_ORANGE: Color = Color::Rgb(217, 119, 87); // #D97757
 const DARK_BG: Color = Color::Rgb(21, 21, 21); // #151515
+const INPUT_BG: Color = Color::Rgb(30, 30, 30); // Slightly lighter than background for input area
 const FOOTER_TEXT: Color = Color::Rgb(112, 128, 144); // Slate Gray
 const FOOTER_HIGHLIGHT: Color = Color::Rgb(255, 255, 255); // White
 
@@ -51,6 +52,7 @@ enum AppState {
 enum MessageType {
     User,
     Thinking,
+    #[allow(dead_code)]
     ToolCall,
     Output,
     System,
@@ -69,6 +71,8 @@ struct App {
     tx_ai: mpsc::Sender<String>, // Channel to send prompts to AI
     rx_ai: mpsc::Receiver<String>, // Channel to receive responses from AI
     waiting_for_response: bool,
+    // Add scroll tracking
+    scroll_offset: usize,
 }
 
 impl App {
@@ -89,6 +93,7 @@ impl App {
             tx_ai,
             rx_ai,
             waiting_for_response: false,
+            scroll_offset: 0,
         }
     }
 
@@ -135,16 +140,31 @@ async fn main() -> Result<()> {
     let backend = CrosstermBackend::new(stdout);
     let mut terminal = Terminal::new(backend)?;
 
+    // Get worker path from arguments
+    let args: Vec<String> = std::env::args().collect();
+    let worker_path = if args.len() > 1 {
+        args[1].clone()
+    } else {
+        // Fallback for dev mode
+        "scripts/ai-worker.ts".to_string()
+    };
+
     // --- Spawn Node.js AI Worker ---
-    // We use a channel to communicate between the UI loop and the worker tasks
     let (tx_to_worker, mut rx_from_ui) = mpsc::channel::<String>(100);
     let (tx_to_ui, rx_from_worker) = mpsc::channel::<String>(100);
 
-    let mut child = Command::new("node")
-        .arg("scripts/ai-worker.ts")
+    // Determine command based on extension
+    let cmd_exec = if worker_path.ends_with(".ts") { 
+        "tsx" 
+    } else {
+        "node"
+    };
+
+    let mut child = Command::new(cmd_exec)
+        .arg(&worker_path)
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
-        .stderr(Stdio::piped()) // Capture stderr to debug
+        .stderr(Stdio::piped())
         .spawn()
         .expect("Failed to spawn Node.js AI worker");
 
@@ -155,8 +175,7 @@ async fn main() -> Result<()> {
     // Task: Write to Node process
     tokio::spawn(async move {
         while let Some(prompt) = rx_from_ui.recv().await {
-            if let Err(e) = stdin.write_all(format!("{}
-", prompt).as_bytes()).await {
+            if let Err(e) = stdin.write_all(format!("{}\n", prompt).as_bytes()).await {
                 eprintln!("Failed to write to AI worker: {}", e);
                 break;
             }
@@ -172,20 +191,15 @@ async fn main() -> Result<()> {
     tokio::spawn(async move {
         let mut reader = BufReader::new(stdout).lines();
         while let Ok(Some(line)) = reader.next_line().await {
-            // Replace our serialized newlines back to real ones if we did that, 
-            // or just pass through. For now, assume simple text.
-            let _ = tx_to_ui_clone.send(line.replace("\n", "
-")).await;
+            let _ = tx_to_ui_clone.send(line.replace("\\n", "\n")).await;
         }
     });
     
-    // Task: Log stderr for debugging
+    // Task: Log stderr
     tokio::spawn(async move {
         let mut reader = BufReader::new(stderr).lines();
-        while let Ok(Some(line)) = reader.next_line().await {
-            // In a real app we might show this in the UI, 
-            // but for now we just let it be or print to a log file if we had one.
-            // Using eprintln here might mess up the TUI.
+        while let Ok(Some(_line)) = reader.next_line().await {
+             // Ignore stderr for now
         }
     });
 
@@ -207,11 +221,9 @@ async fn main() -> Result<()> {
 }
 
 async fn run_app(terminal: &mut Terminal<CrosstermBackend<Stdout>>, app: &mut App) -> Result<()> {
-    // We use a poll interval for drawing
-    let mut interval = tokio::time::interval(Duration::from_millis(33)); // ~30 FPS
+    let mut interval = tokio::time::interval(Duration::from_millis(33));
 
     loop {
-        // 1. Draw UI
         terminal.draw(|f| {
             let size = f.size();
             let main_block = Block::default().style(Style::default().bg(DARK_BG));
@@ -223,10 +235,10 @@ async fn run_app(terminal: &mut Terminal<CrosstermBackend<Stdout>>, app: &mut Ap
                         .direction(Direction::Vertical)
                         .constraints([
                             Constraint::Percentage(15), 
-                            Constraint::Length(5),      
-                            Constraint::Length(15),     
-                            Constraint::Length(3),      
-                            Constraint::Min(0),         
+                            Constraint::Length(5),      // Header
+                            Constraint::Length(15),     // Logo
+                            Constraint::Min(1),         // Spacer
+                            Constraint::Length(3),      // Input
                         ])
                         .margin(2)
                         .split(size);
@@ -260,13 +272,15 @@ async fn run_app(terminal: &mut Terminal<CrosstermBackend<Stdout>>, app: &mut Ap
                     let logo = Paragraph::new(Text::from(logo_lines)).alignment(Alignment::Center);
                     f.render_widget(logo, vertical_chunks[2]);
 
-                    let footer_text = Line::from(vec![
-                        Span::styled("🎉 Login successful. Press ", Style::default().fg(FOOTER_TEXT)),
-                        Span::styled("Enter", Style::default().fg(FOOTER_HIGHLIGHT).add_modifier(Modifier::BOLD)),
-                        Span::styled(" to continue", Style::default().fg(FOOTER_TEXT)),
-                    ]);
-                    let footer = Paragraph::new(footer_text).alignment(Alignment::Center);
-                    f.render_widget(footer, vertical_chunks[3]);
+                    // Render Input on Splash Screen
+                    let input_text = format!("> {}_", app.input);
+                    let input = Paragraph::new(input_text)
+                        .style(Style::default().fg(Color::White).add_modifier(Modifier::BOLD)) // Bold White font
+                        .block(Block::default()
+                            .borders(Borders::ALL)
+                            .border_style(Style::default().fg(Color::DarkGray))
+                            .style(Style::default().bg(INPUT_BG))); // Darker Background
+                    f.render_widget(input, vertical_chunks[4]);
                 }
                 AppState::Chat => {
                     let chunks = Layout::default()
@@ -309,11 +323,21 @@ async fn run_app(terminal: &mut Terminal<CrosstermBackend<Stdout>>, app: &mut Ap
 
                     let messages_list = List::new(messages)
                         .block(Block::default().style(Style::default().bg(DARK_BG)));
-                    f.render_widget(messages_list, chunks[0]);
+                    
+                    // Simple auto-scroll
+                    let mut state = ratatui::widgets::ListState::default();
+                    if !app.messages.is_empty() {
+                         state.select(Some(app.messages.len() - 1));
+                    }
+                    
+                    f.render_stateful_widget(messages_list, chunks[0], &mut state);
 
                     let input = Paragraph::new(format!("> {}_", app.input))
-                        .style(Style::default().fg(Color::White))
-                        .block(Block::default().style(Style::default().bg(DARK_BG)));
+                        .style(Style::default().fg(Color::White).add_modifier(Modifier::BOLD)) // Bold White font
+                        .block(Block::default()
+                            .borders(Borders::TOP) // Separator line
+                            .border_style(Style::default().fg(Color::DarkGray))
+                            .style(Style::default().bg(INPUT_BG))); // Darker Background
                     f.render_widget(input, chunks[1]);
                 }
             }
@@ -325,57 +349,45 @@ async fn run_app(terminal: &mut Terminal<CrosstermBackend<Stdout>>, app: &mut Ap
                 // Just for redraw frequency
             }
 
-            // Handle AI Responses
-            Some(response) = app.rx_ai.recv() => {
-                // Find the last "Thinking" message and replace it, or append
-                if app.waiting_for_response {
-                    // Remove the "Thinking..." or just append
-                    // For simplicity, we just add the response as Output
-                    app.messages.push(Message {
-                        content: response,
-                        msg_type: MessageType::Output,
-                    });
-                    app.waiting_for_response = false;
-                }
-            }
-
-            // Handle Keyboard Input
-            // Note: event::poll is sync, but blocking in tokio::select is bad.
-            // Ideally we would use EventStream, but for this demo, we can use a very short poll duration
-            // inside the loop, effectively checking it on every tick.
-            // However, inside select!, we can not easily poll sync functions.
-            // 
-            // Better approach for select loop:
-            // Run input reading in a separate task sending to a channel?
-            // Or just poll with 0 timeout here. But select! expects futures.
-            //
-            // Fallback: We will check event::poll *outside* select! if we use a timeout there?
-            // Actually, let us keep it simple: We used a dedicated task for AI.
-            // We can just check `app.rx_ai.try_recv()` inside the normal loop.
-            // Reverting to the sync loop structure but with try_recv for the async channel.
             else => {} 
         }
         
-        // Manual Polling Mix (Sync + Async Channel)
-        // Check for AI messages
         while let Ok(response) = app.rx_ai.try_recv() {
+             // Remove the thinking message if it exists
+             if app.waiting_for_response {
+                 if let Some(last) = app.messages.last() {
+                     if matches!(last.msg_type, MessageType::Thinking) {
+                         app.messages.pop();
+                     }
+                 }
+                 app.waiting_for_response = false;
+             }
+             
              app.messages.push(Message {
                 content: response,
                 msg_type: MessageType::Output,
             });
-            app.waiting_for_response = false;
         }
 
-        // Check for Keyboard
         if event::poll(Duration::from_millis(10))? {
              if let Event::Key(key) = event::read()? {
                 if key.kind == KeyEventKind::Press {
                     match app.state {
                         AppState::Splash => {
-                             if key.code == KeyCode::Enter {
-                                 app.state = AppState::Chat;
-                             } else if key.code == KeyCode::Esc || key.code == KeyCode::Char('q') {
-                                 return Ok(());
+                             match key.code {
+                                KeyCode::Char('c') if key.modifiers.contains(KeyModifiers::CONTROL) => return Ok(()),
+                                KeyCode::Enter => {
+                                    if !app.input.trim().is_empty() {
+                                        app.state = AppState::Chat;
+                                        app.submit_message().await;
+                                    } else {
+                                        app.state = AppState::Chat;
+                                    }
+                                }
+                                KeyCode::Char(c) => app.input.push(c),
+                                KeyCode::Backspace => { app.input.pop(); },
+                                KeyCode::Esc => return Ok(()),
+                                _ => {}
                              }
                         }
                         AppState::Chat => {

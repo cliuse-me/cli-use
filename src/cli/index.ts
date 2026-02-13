@@ -54,6 +54,13 @@ program
     showExamplesTUI();
   });
 
+program
+  .command('code')
+  .description('Launch the AI-powered CLI Code interface')
+  .action(() => {
+    showRustDemo();
+  });
+
 program.option('-d, --demo', 'Run the ink demo').action(() => {
   // Demo option handled at top level
 });
@@ -76,10 +83,15 @@ function showRustDemo() {
     __dirname,
     `../../native/target/release/ratatui-demo${extension}`
   );
+  // Resolve worker path relative to built CLI (dist/cli/index.js -> dist/ai-worker.js)
+  // ../ai-worker.js because both are in dist/cli and dist/
+  // Wait, tsup output: dist/cli/index.js and dist/ai-worker.js
+  // So it is ../ai-worker.js
+  const workerPath = path.resolve(__dirname, '../ai-worker.js');
 
   console.log(chalk.cyan('Starting Ratatui Demo...'));
 
-  const child = spawn(binaryPath, [], {
+  const child = spawn(binaryPath, [workerPath], {
     stdio: 'inherit',
   });
 

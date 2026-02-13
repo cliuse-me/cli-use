@@ -33,7 +33,11 @@
     "typecheck": "tsc --noEmit",
     "lint": "eslint src --ext .ts,.tsx",
     "format": "prettier --write \"src/**/*.ts\" \"src/**/*.tsx\"",
-    "prepublishOnly": "npm run build"
+    "prepublishOnly": "npm run build",
+    "build:rust": "cd native && cargo build --release",
+    "demo:rust": "tsx scripts/run-rust-demo.ts",
+    "test:ai": "tsx scripts/test-ai.ts",
+    "list:models": "tsx scripts/list-models.ts"
   },
   "keywords": [
     "tui",

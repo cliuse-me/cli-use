@@ -1,7 +1,7 @@
 import { defineConfig } from 'tsup';
 
 export default defineConfig({
-  entry: ['src/index.ts', 'src/hooks/index.ts', 'src/cli/index.ts'],
+  entry: ['src/index.ts', 'src/hooks/index.ts', 'src/cli/index.ts', 'src/ai-worker.ts'],
   format: ['esm', 'cjs'],
   dts: true,
   splitting: false,
