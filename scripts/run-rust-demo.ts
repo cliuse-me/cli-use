@@ -12,8 +12,7 @@ const child = spawn(rustBinaryPath, [], {
 
 child.on('error', (err) => {
   console.error('Failed to start demo:', err);
-  console.log('
-Make sure you have built the Rust binary first by running: npm run build:rust');
+  console.log('\nMake sure you have built the Rust binary first by running: npm run build:rust');
 });
 
 child.on('close', (code) => {
