@@ -48,16 +48,19 @@
     "interactive",
     "components"
   ],
-  "author": "Your Name <your.email@example.com>",
+  "author": "Arthur Alves <arthurdata404@gmail.com>",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/yourusername/cli-use.git"
+    "url": "https://github.com/art-santos/cli-use.git"
   },
   "bugs": {
-    "url": "https://github.com/yourusername/cli-use/issues"
+    "url": "https://github.com/art-santos/cli-use/issues"
   },
-  "homepage": "https://github.com/yourusername/cli-use#readme",
+  "homepage": "https://github.com/art-santos/cli-use#readme",
+  "publishConfig": {
+    "access": "public"
+  },
   "dependencies": {
     "chalk": "^5.4.1",
     "commander": "^12.1.0",
