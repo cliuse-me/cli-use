@@ -1,22 +1,22 @@
 # cli-use
 
-> Build terminal user interfaces with React
+> Build beautiful terminal user interfaces with Ink
 
-A React-based TUI (Terminal User Interface) framework inspired by [Ratatui](https://ratatui.rs), bringing component-driven architecture to terminal applications.
+A powerful TUI (Terminal User Interface) framework using **Ink** (React for CLIs). Create stunning terminal interfaces with tables, lists, markdown rendering, custom styles, and flex-like layouts.
 
 ## 🎯 Overview
 
-`cli-use` lets you build rich terminal applications using React patterns you already know. Component-based architecture, hooks for state management, and declarative UI - all running in the terminal.
+`cli-use` lets you build beautiful terminal applications using **Ink** - the most popular React-based TUI framework. Create tables, lists, markdown rendering, custom styles, and flex-like layouts - all with React components you already know.
 
 ## ✨ Features
 
-- **React Components** - Build UIs with React components and JSX
-- **Hooks** - useState, useEffect, useInput, useFocus, and more
-- **Flexible Layouts** - Box, Flex, and Grid components for layouts
-- **TypeScript** - Full type safety and excellent IDE support
-- **React Reconciler** - Custom renderer optimized for terminal output
-- **Input Handling** - Keyboard and mouse input capture
-- **Performance** - Differential rendering and efficient updates
+- **🎨 Beautiful Styling** - CSS-like properties for stunning interfaces
+- **📊 Tables** - Render beautiful tables with borders, colors, and alignment
+- **📝 Lists** - Create interactive lists with selection states and custom enumerators
+- **📖 Markdown** - Render markdown with themes
+- **📐 Layouts** - Flex-like horizontal/vertical layouts
+- **🔧 TypeScript** - Full type safety and excellent IDE support
+- **⚡ Cross-Platform** - Works on macOS, Linux, and Windows
 
 ## 🚀 Quick Start
 
@@ -24,87 +24,60 @@ A React-based TUI (Terminal User Interface) framework inspired by [Ratatui](http
 # Install
 npm install cli-use
 
-# Create a new app
-mkdir my-tui-app
-cd my-tui-app
-npm init -y
-npm install cli-use react
-
-# Run an example
-npm run example:counter
+# Run the demo
+npm run example:ink-demo
 ```
 
-## 💡 Example
+## 💡 Examples
+
+### Basic App
 
 ```tsx
-import React, { useState } from 'react';
-import { render, Box, Text, Button, useInput, useKey } from 'cli-use';
+import React from 'react';
+import { render, Box, Text } from 'ink';
 
-const App: React.FC = () => {
-  const [count, setCount] = useState(0);
-
-  useKey('q', () => process.exit(0));
-  useKey('up', () => setCount(c => c + 1));
-  useKey('down', () => setCount(c => c - 1));
-
-  return (
-    <Box x={5} y={3}>
-      <Text x={0} y={0} style={{ bold: true, fg: 2 }}>
-        Counter Example
-      </Text>
-      <Text x={0} y={2} style={{ fg: 7 }}>
-        Count: {count}
-      </Text>
-      <Text x={0} y={4} style={{ fg: 8 }}>
-        Press ↑/↓ to change, q to quit
-      </Text>
-    </Box>
-  );
-};
+const App = () => (
+  <Box borderStyle="round" padding={1}>
+    <Text bold>Hello from cli-use!</Text>
+  </Box>
+);
 
 render(<App />);
 ```
 
-## 📦 Components
-
-### Layout Components
-
-- **`Box`** - Basic container with positioning
-- **`Flex`** - Flexbox-like layout
-- **`Grid`** - Grid layout system
-
-### Display Components
-
-- **`Text`** - Text rendering with styling
-- **`Button`** - Clickable button
-- **`Input`** - Text input field
-- **`Progress`** - Progress bar
-
-## 🪝 Hooks
-
-- **`useInput`** - Capture keyboard input
-- **`useKey`** - Listen for specific keys
-- **`useFocus`** - Manage focus state
-- **`useApp`** - Application lifecycle management
-- **`useStdout`** - Terminal operations
-- **`useInterval`** / **`useTimeout`** - Timers
-- **`useList`** - List navigation
-- **`useAppState`** - State machine for loading/success/error
-
-## 🎨 Styling
+### Interactive Counter
 
 ```tsx
-<Text style={{
-  fg: 2,      // ANSI color (0-255)
-  bg: 7,
-  bold: true,
-  dim: false,
-  italic: true,
-  underline: false
-}}>
-  Styled text
-</Text>
+import React, { useState } from 'react';
+import { render, Box, Text, useInput } from 'ink';
+
+const Counter = () => {
+  const [count, setCount] = useState(0);
+
+  useInput((input, key) => {
+    if (key.return) setCount(c => c + 1);
+  });
+
+  return (
+    <Box>
+      <Text>Count: {count}</Text>
+      <Text dim>Press Enter to increment</Text>
+    </Box>
+  );
+};
+
+render(<Counter />);
 ```
+
+## 📦 API
+
+### Core Components
+
+- **`Box`** - Container component for layout and styling
+- **`Text`** - Text rendering with colors and styles
+- **`render()`** - Render Ink apps to terminal
+- **`useInput()`** - Handle keyboard input
+- **`useApp()`** - App instance management
 
 ## 🧰 Development
 
@@ -121,10 +94,8 @@ npm run test:unit
 # Type check
 npm run typecheck
 
-# Run examples
-npm run example:counter
-npm run example:demo
-npm run example:todos
+# Run demo
+npm run example:ink-demo
 ```
 
 ## 📁 Project Structure
@@ -132,12 +103,10 @@ npm run example:todos
 ```
 cli-use/
 ├── src/
-│   ├── renderer/       # Terminal rendering engine
-│   ├── reconciler/     # React reconciler integration
-│   ├── components/     # UI components
-│   ├── hooks/         # React hooks
-│   ├── examples/      # Example apps
-│   └── index.ts       # Main entry point
+│   ├── renderer/
+│   │   └── terminal.ts          # Terminal handling
+│   └── examples/
+│   │   └── ink-demo.tsx        # Interactive demo
 ├── package.json
 ├── tsconfig.json
 └── README.md
@@ -151,12 +120,6 @@ Contributions welcome! Please read our contributing guidelines before submitting
 
 MIT © 2025 cli-use contributors
 
-## 🙏 Acknowledgments
-
-- Inspired by [Ratatui](https://ratatui.rs) - the amazing Rust TUI library
-- Built with [React Reconciler](https://www.npmjs.com/package/react-reconciler)
-- Drawing inspiration from [Ink](https://github.com/vadimdemedes/ink)
-
 ---
 
-**Note:** This project is currently in early development. The core architecture is in place, but full rendering capabilities are still being implemented. See the examples for the current state and what's possible.
+**Built with ❤️ and Ink**
