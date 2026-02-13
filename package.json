@@ -1,0 +1,97 @@
+{
+  "name": "cli-use",
+  "version": "0.1.0",
+  "description": "Build terminal user interfaces with React - A React-based TUI framework inspired by Ratatui",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./hooks": {
+      "types": "./dist/hooks/index.d.ts",
+      "import": "./dist/hooks/index.js"
+    }
+  },
+  "bin": {
+    "cli-use": "./dist/cli/index.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "test:unit": "vitest run --reporter=verbose",
+    "test:integration": "vitest run --reporter=verbose",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src --ext .ts,.tsx",
+    "format": "prettier --write \"src/**/*.ts\" \"src/**/*.tsx\"",
+    "example:counter": "tsx src/examples/counter.tsx",
+    "example:demo": "tsx src/examples/demo.tsx",
+    "example:todos": "tsx src/examples/todos.tsx",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "tui",
+    "terminal",
+    "cli",
+    "react",
+    "react-reconciler",
+    "ratatui",
+    "ncurses"
+  ],
+  "author": "Your Name <your.email@example.com>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/cli-use.git"
+  },
+  "bugs": {
+    "url": "https://github.com/yourusername/cli-use/issues"
+  },
+  "homepage": "https://github.com/yourusername/cli-use#readme",
+  "dependencies": {
+    "ansi-escapes": "^7.0.0",
+    "blessed": "^0.1.81",
+    "chalk": "^5.4.1",
+    "commander": "^12.1.0",
+    "eastasianwidth": "^0.3.0",
+    "keypress": "^0.2.1",
+    "react": ">=18.0.0",
+    "react-reconciler": "^0.29.2",
+    "slice-ansi": "^8.0.0",
+    "string-width": "^7.2.0",
+    "wrap-ansi": "^9.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.6",
+    "@types/react": "^18.3.18",
+    "@types/react-reconciler": "^0.28.8",
+    "@typescript-eslint/eslint-plugin": "^8.19.1",
+    "@typescript-eslint/parser": "^8.19.1",
+    "@vitejs/plugin-react": "^4.3.4",
+    "@vitest/ui": "^2.1.8",
+    "eslint": "^9.17.0",
+    "eslint-plugin-react": "^7.37.4",
+    "eslint-plugin-react-hooks": "^5.1.0",
+    "msw": "^2.7.0",
+    "prettier": "^3.4.2",
+    "tsup": "^8.3.5",
+    "tsx": "^4.21.0",
+    "typescript": "^5.7.3",
+    "vitest": "^2.1.8"
+  },
+  "peerDependencies": {
+    "react": ">=18.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
