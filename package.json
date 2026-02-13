@@ -1,5 +1,5 @@
 {
-  "name": "cli-use-tui",
+  "name": "@cli-use/tui",
   "version": "0.1.0",
   "description": "Build beautiful terminal user interfaces with styled components - A powerful TUI framework for creating stunning CLI applications",
   "type": "module",
@@ -33,10 +33,7 @@
     "typecheck": "tsc --noEmit",
     "lint": "eslint src --ext .ts,.tsx",
     "format": "prettier --write \"src/**/*.ts\" \"src/**/*.tsx\"",
-    "prepublishOnly": "npm run build",
-    "demo:rust": "tsx scripts/run-rust-demo.ts",
-    "build:rust": "cd native && cargo build --release",
-    "postinstall": "tsx scripts/postinstall.ts"
+    "prepublishOnly": "npm run build"
   },
   "keywords": [
     "tui",
@@ -55,12 +52,12 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/art-santos/cli-use.git"
+    "url": "https://github.com/cliuse-me/cli-use.git"
   },
   "bugs": {
-    "url": "https://github.com/art-santos/cli-use/issues"
+    "url": "https://github.com/cliuse-me/cli-use/issues"
   },
-  "homepage": "https://github.com/art-santos/cli-use#readme",
+  "homepage": "https://github.com/cliuse-me/cli-use#readme",
   "publishConfig": {
     "access": "public"
   },

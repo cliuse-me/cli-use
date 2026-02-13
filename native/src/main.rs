@@ -13,6 +13,10 @@ use ratatui::{
     Terminal,
 };
 use std::io::{stdout, Stdout};
+use std::process::Stdio;
+use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
+use tokio::process::Command;
+use tokio::sync::mpsc;
 use std::time::Duration;
 
 // --- Colors & Constants ---
@@ -43,6 +47,7 @@ enum AppState {
     Chat,
 }
 
+#[derive(Clone)]
 enum MessageType {
     User,
     Thinking,
@@ -51,6 +56,7 @@ enum MessageType {
     System,
 }
 
+#[derive(Clone)]
 struct Message {
     content: String,
     msg_type: MessageType,
@@ -60,10 +66,13 @@ struct App {
     state: AppState,
     input: String,
     messages: Vec<Message>,
+    tx_ai: mpsc::Sender<String>, // Channel to send prompts to AI
+    rx_ai: mpsc::Receiver<String>, // Channel to receive responses from AI
+    waiting_for_response: bool,
 }
 
 impl App {
-    fn new() -> App {
+    fn new(tx_ai: mpsc::Sender<String>, rx_ai: mpsc::Receiver<String>) -> App {
         App {
             state: AppState::Splash,
             input: String::new(),
@@ -73,93 +82,118 @@ impl App {
                     msg_type: MessageType::System,
                 },
                 Message {
-                    content: "I am ready to assist. Type 'help' for commands.".to_string(),
+                    content: "I am ready to assist. Type anything to chat with Google Gemini.".to_string(),
                     msg_type: MessageType::System,
                 },
             ],
+            tx_ai,
+            rx_ai,
+            waiting_for_response: false,
         }
     }
 
-    fn submit_message(&mut self) {
+    async fn submit_message(&mut self) {
         if self.input.trim().is_empty() {
             return;
         }
 
+        let prompt = self.input.trim().to_string();
+
+        // Add user message to UI
         self.messages.push(Message {
             content: self.input.clone(),
             msg_type: MessageType::User,
         });
 
-        let cmd = self.input.trim().to_lowercase();
-        self.input.clear();
+        // Add thinking indicator
+        self.messages.push(Message {
+            content: "Consulting Gemini...".to_string(),
+            msg_type: MessageType::Thinking,
+        });
 
-        match cmd.as_str() {
-            "status" => {
-                self.messages.push(Message {
-                    content: "Checking project status...".to_string(),
-                    msg_type: MessageType::Thinking,
-                });
-                self.messages.push(Message {
-                    content: "git status".to_string(),
-                    msg_type: MessageType::ToolCall,
-                });
-                self.messages.push(Message {
-                    content: "On branch main\nYour branch is up to date with origin/main.".to_string(),
-                    msg_type: MessageType::Output,
-                });
-            }
-            "analyze" => {
-                self.messages.push(Message {
-                    content: "Analyzing codebase structure...".to_string(),
-                    msg_type: MessageType::Thinking,
-                });
-                self.messages.push(Message {
-                    content: "ls -R src".to_string(),
-                    msg_type: MessageType::ToolCall,
-                });
-                self.messages.push(Message {
-                    content: "src/cli\nsrc/components\nsrc/hooks".to_string(),
-                    msg_type: MessageType::Output,
-                });
-            }
-            "help" => {
-                 self.messages.push(Message {
-                    content: "Available commands: status, analyze, help, exit".to_string(),
-                    msg_type: MessageType::Output,
-                });
-            }
-            "quit" | "exit" => {
-                // Handled in main loop
-            }
-            _ => {
-                self.messages.push(Message {
-                    content: "I'm thinking about that...".to_string(),
-                    msg_type: MessageType::Thinking,
-                });
-                self.messages.push(Message {
-                    content: format!("echo Processing: {}", cmd),
-                    msg_type: MessageType::ToolCall,
-                });
-                self.messages.push(Message {
-                    content: "Done.".to_string(),
-                    msg_type: MessageType::Output,
-                });
-            }
+        // Send to AI worker
+        if let Err(e) = self.tx_ai.send(prompt).await {
+            self.messages.push(Message {
+                content: format!("Error communicating with AI worker: {}", e),
+                msg_type: MessageType::System,
+            });
+        } else {
+            self.waiting_for_response = true;
         }
+
+        self.input.clear();
     }
 }
 
 // --- Main Execution ---
 
-fn main() -> Result<()> {
+#[tokio::main]
+async fn main() -> Result<()> {
     enable_raw_mode()?;
     let mut stdout = stdout();
     execute!(stdout, EnterAlternateScreen)?;
     let backend = CrosstermBackend::new(stdout);
     let mut terminal = Terminal::new(backend)?;
 
-    let mut app = App::new();
-    let res = run_app(&mut terminal, &mut app);
+    // --- Spawn Node.js AI Worker ---
+    // We use a channel to communicate between the UI loop and the worker tasks
+    let (tx_to_worker, mut rx_from_ui) = mpsc::channel::<String>(100);
+    let (tx_to_ui, rx_from_worker) = mpsc::channel::<String>(100);
+
+    let mut child = Command::new("node")
+        .arg("scripts/ai-worker.ts")
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped()) // Capture stderr to debug
+        .spawn()
+        .expect("Failed to spawn Node.js AI worker");
+
+    let mut stdin = child.stdin.take().expect("Failed to open stdin");
+    let stdout = child.stdout.take().expect("Failed to open stdout");
+    let stderr = child.stderr.take().expect("Failed to open stderr");
+
+    // Task: Write to Node process
+    tokio::spawn(async move {
+        while let Some(prompt) = rx_from_ui.recv().await {
+            if let Err(e) = stdin.write_all(format!("{}
+", prompt).as_bytes()).await {
+                eprintln!("Failed to write to AI worker: {}", e);
+                break;
+            }
+            if let Err(e) = stdin.flush().await {
+                eprintln!("Failed to flush to AI worker: {}", e);
+                break;
+            }
+        }
+    });
+
+    // Task: Read from Node process
+    let tx_to_ui_clone = tx_to_ui.clone();
+    tokio::spawn(async move {
+        let mut reader = BufReader::new(stdout).lines();
+        while let Ok(Some(line)) = reader.next_line().await {
+            // Replace our serialized newlines back to real ones if we did that, 
+            // or just pass through. For now, assume simple text.
+            let _ = tx_to_ui_clone.send(line.replace("\n", "
+")).await;
+        }
+    });
+    
+    // Task: Log stderr for debugging
+    tokio::spawn(async move {
+        let mut reader = BufReader::new(stderr).lines();
+        while let Ok(Some(line)) = reader.next_line().await {
+            // In a real app we might show this in the UI, 
+            // but for now we just let it be or print to a log file if we had one.
+            // Using eprintln here might mess up the TUI.
+        }
+    });
+
+    let mut app = App::new(tx_to_worker, rx_from_worker);
+    let res = run_app(&mut terminal, &mut app).await;
+
+    // Cleanup
+    let _ = child.kill().await;
 
     disable_raw_mode()?;
     execute!(terminal.backend_mut(), LeaveAlternateScreen)?;
@@ -172,11 +206,14 @@ fn main() -> Result<()> {
     Ok(())
 }
 
-fn run_app(terminal: &mut Terminal<CrosstermBackend<Stdout>>, app: &mut App) -> Result<()> {
+async fn run_app(terminal: &mut Terminal<CrosstermBackend<Stdout>>, app: &mut App) -> Result<()> {
+    // We use a poll interval for drawing
+    let mut interval = tokio::time::interval(Duration::from_millis(33)); // ~30 FPS
+
     loop {
+        // 1. Draw UI
         terminal.draw(|f| {
             let size = f.size();
-            // Background for entire app
             let main_block = Block::default().style(Style::default().bg(DARK_BG));
             f.render_widget(main_block, size);
 
@@ -185,22 +222,21 @@ fn run_app(terminal: &mut Terminal<CrosstermBackend<Stdout>>, app: &mut App) -> 
                     let vertical_chunks = Layout::default()
                         .direction(Direction::Vertical)
                         .constraints([
-                            Constraint::Percentage(15), // Top spacing
-                            Constraint::Length(5),      // Header
-                            Constraint::Length(15),     // Logo
-                            Constraint::Length(3),      // Footer
-                            Constraint::Min(0),         // Bottom spacing
+                            Constraint::Percentage(15), 
+                            Constraint::Length(5),      
+                            Constraint::Length(15),     
+                            Constraint::Length(3),      
+                            Constraint::Min(0),         
                         ])
                         .margin(2)
                         .split(size);
 
-                    // --- Header (Centered Horizontal Box) ---
                     let header_area = vertical_chunks[1];
                     let header_layout = Layout::default()
                         .direction(Direction::Horizontal)
                         .constraints([
                             Constraint::Fill(1),
-                            Constraint::Length(54), // Fixed width for "Welcome..." box
+                            Constraint::Length(54), 
                             Constraint::Fill(1),
                         ])
                         .split(header_area);
@@ -216,20 +252,14 @@ fn run_app(terminal: &mut Terminal<CrosstermBackend<Stdout>>, app: &mut App) -> 
                             .border_style(Style::default().fg(CLAUDE_ORANGE))
                     )
                     .alignment(Alignment::Center);
-                    
                     f.render_widget(header, header_layout[1]);
 
-                    // --- Logo (Full Width Center) ---
                     let logo_lines: Vec<Line> = LOGO_TEXT.iter()
                         .map(|line| Line::from(Span::styled(*line, Style::default().fg(CLAUDE_ORANGE))))
                         .collect();
-                    
-                    let logo = Paragraph::new(Text::from(logo_lines))
-                        .alignment(Alignment::Center);
-                        
+                    let logo = Paragraph::new(Text::from(logo_lines)).alignment(Alignment::Center);
                     f.render_widget(logo, vertical_chunks[2]);
 
-                    // --- Footer ---
                     let footer_text = Line::from(vec![
                         Span::styled("🎉 Login successful. Press ", Style::default().fg(FOOTER_TEXT)),
                         Span::styled("Enter", Style::default().fg(FOOTER_HIGHLIGHT).add_modifier(Modifier::BOLD)),
@@ -242,8 +272,8 @@ fn run_app(terminal: &mut Terminal<CrosstermBackend<Stdout>>, app: &mut App) -> 
                     let chunks = Layout::default()
                         .direction(Direction::Vertical)
                         .constraints([
-                            Constraint::Min(1), // Messages
-                            Constraint::Length(3), // Input
+                            Constraint::Min(1), 
+                            Constraint::Length(3), 
                         ].as_ref())
                         .split(size);
 
@@ -289,8 +319,56 @@ fn run_app(terminal: &mut Terminal<CrosstermBackend<Stdout>>, app: &mut App) -> 
             }
         })?;
 
-        if event::poll(Duration::from_millis(100))? {
-            if let Event::Key(key) = event::read()? {
+        // 2. Handle Events (Keyboard + AI Channel)
+        tokio::select! {
+            _ = interval.tick() => {
+                // Just for redraw frequency
+            }
+
+            // Handle AI Responses
+            Some(response) = app.rx_ai.recv() => {
+                // Find the last "Thinking" message and replace it, or append
+                if app.waiting_for_response {
+                    // Remove the "Thinking..." or just append
+                    // For simplicity, we just add the response as Output
+                    app.messages.push(Message {
+                        content: response,
+                        msg_type: MessageType::Output,
+                    });
+                    app.waiting_for_response = false;
+                }
+            }
+
+            // Handle Keyboard Input
+            // Note: event::poll is sync, but blocking in tokio::select is bad.
+            // Ideally we would use EventStream, but for this demo, we can use a very short poll duration
+            // inside the loop, effectively checking it on every tick.
+            // However, inside select!, we can not easily poll sync functions.
+            // 
+            // Better approach for select loop:
+            // Run input reading in a separate task sending to a channel?
+            // Or just poll with 0 timeout here. But select! expects futures.
+            //
+            // Fallback: We will check event::poll *outside* select! if we use a timeout there?
+            // Actually, let us keep it simple: We used a dedicated task for AI.
+            // We can just check `app.rx_ai.try_recv()` inside the normal loop.
+            // Reverting to the sync loop structure but with try_recv for the async channel.
+            else => {} 
+        }
+        
+        // Manual Polling Mix (Sync + Async Channel)
+        // Check for AI messages
+        while let Ok(response) = app.rx_ai.try_recv() {
+             app.messages.push(Message {
+                content: response,
+                msg_type: MessageType::Output,
+            });
+            app.waiting_for_response = false;
+        }
+
+        // Check for Keyboard
+        if event::poll(Duration::from_millis(10))? {
+             if let Event::Key(key) = event::read()? {
                 if key.kind == KeyEventKind::Press {
                     match app.state {
                         AppState::Splash => {
@@ -307,7 +385,7 @@ fn run_app(terminal: &mut Terminal<CrosstermBackend<Stdout>>, app: &mut App) -> 
                                     if app.input.trim().eq_ignore_ascii_case("quit") || app.input.trim().eq_ignore_ascii_case("exit") {
                                         return Ok(());
                                     }
-                                    app.submit_message();
+                                    app.submit_message().await;
                                 }
                                 KeyCode::Char(c) => app.input.push(c),
                                 KeyCode::Backspace => { app.input.pop(); },
