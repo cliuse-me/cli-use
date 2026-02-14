@@ -1,5 +1,5 @@
 {
-  "name": "@cliuse-me/cli-use",
+  "name": "@cli-use/tui",
   "version": "0.1.0",
   "description": "Build beautiful terminal user interfaces with styled components - A powerful TUI framework for creating stunning CLI applications",
   "type": "module",
@@ -62,7 +62,7 @@
   },
   "homepage": "https://github.com/cliuse-me/cli-use#readme",
   "publishConfig": {
-    "registry": "https://npm.pkg.github.com"
+    "access": "public"
   },
   "dependencies": {
     "@ai-sdk/google": "^3.0.29",
