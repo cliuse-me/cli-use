@@ -131,7 +131,7 @@ const App = () => {
           addMessage('user', '>', input);
           addMessage('thinking', '⏺', 'Processing...');
           setTimeout(() => {
-            addMessage('output', '⎿', 'This is a simulated response in the Ink demo.');
+            addMessage('output', '⎿', 'This is a simulated response in the cli-use demo.');
           }, 1000);
           setInput('');
         }
@@ -140,7 +140,7 @@ const App = () => {
           addMessage('user', '>', input);
           addMessage('thinking', '⏺', 'Processing...');
           setTimeout(() => {
-            addMessage('output', '⎿', 'This is a simulated response in the Ink demo.');
+            addMessage('output', '⎿', 'This is a simulated response in the cli-use demo.');
           }, 1000);
           setInput('');
         }
