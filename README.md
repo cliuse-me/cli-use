@@ -22,7 +22,7 @@
 ### 1. Install via NPM
 
 ```bash
-npm install -g cli-use
+npm install -g @cli-use/tui
 ```
 
 ### 2. Configure AI (Optional)
@@ -69,7 +69,7 @@ You can also build standard React-based CLIs.
 
 ```tsx
 import React from 'react';
-import { render, Box, Text } from 'cli-use';
+import { render, Box, Text } from '@cli-use/tui';
 
 const App = () => (
   <Box borderStyle="round" padding={1}>
@@ -84,7 +84,7 @@ render(<App />);
 
 ```tsx
 import React, { useState } from 'react';
-import { render, Box, Text, useInput } from 'cli-use';
+import { render, Box, Text, useInput } from '@cli-use/tui';
 
 const Counter = () => {
   const [count, setCount] = useState(0);
