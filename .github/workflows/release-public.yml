@@ -1,0 +1,48 @@
+name: Release to Public NPM
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag_name:
+        description: 'Tag to release (e.g. v1.0.0)'
+        required: true
+
+jobs:
+  publish-public:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag_name }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Prepare for Public Release
+        run: |
+          # Rename package to 'cli-use' (remove scope)
+          npm pkg set name="cli-use"
+          # Remove registry config to default to public npm
+          npm pkg delete publishConfig
+          
+          echo "📦 Package renamed to 'cli-use' for public release"
+          cat package.json | grep name
+
+      - name: Build package
+        run: npm run build
+
+      - name: Publish to NPM
+        run: npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
