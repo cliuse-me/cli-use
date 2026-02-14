@@ -1,6 +1,6 @@
 {
   "name": "@cli-use/tui",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "Build beautiful terminal user interfaces with styled components - A powerful TUI framework for creating stunning CLI applications",
   "type": "module",
   "main": "./dist/index.js",
