@@ -39,7 +39,7 @@
     "test:ai": "tsx scripts/test-ai.ts",
     "list:models": "tsx scripts/list-models.ts",
     "build:copy": "tsx scripts/copy-binary.ts",
-    "demo:ink": "tsx src/examples/cli-use-demo.tsx"
+    "demo:cli-use": "tsx src/examples/cli-use-demo.tsx"
   },
   "keywords": [
     "tui",

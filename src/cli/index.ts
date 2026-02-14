@@ -62,7 +62,7 @@ program
     showRustDemo();
   });
 
-program.option('-d, --demo', 'Run the ink demo').action(() => {
+program.option('-d, --demo', 'Run the cli-use demo').action(() => {
   // Demo option handled at top level
 });
 
@@ -70,7 +70,7 @@ const options = program.parse(process.argv);
 
 // Handle --demo flag
 if (options.opts().demo) {
-  // Since we're using ESM, we use import to run the ink demo
+  // Since we're using ESM, we use import to run the cli-use demo
   import('../examples/cli-use-demo.tsx').catch((err: unknown) => {
     console.error('Failed to run demo:', err);
     process.exit(1);
