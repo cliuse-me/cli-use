@@ -8,7 +8,7 @@ import path from 'path';
 import fs from 'fs';
 import { render } from 'ink';
 import React from 'react';
-import CodeInterface from './code-interface.js';
+import { CodeInterface } from './code-interface.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -90,12 +90,12 @@ function showBuildTUI() {
   console.log(chalk.cyan('Build TUI'));
 }
 
-function showInitTUI(projectName) {
+function showInitTUI(projectName: string) {
   console.clear();
   console.log(chalk.cyan('Init TUI for ' + projectName));
 }
 
-function showRunTUI(exampleName) {
+function showRunTUI(exampleName: string) {
   console.clear();
   console.log(chalk.cyan('Run TUI for ' + exampleName));
 }
@@ -104,4 +104,3 @@ function showExamplesTUI() {
   console.clear();
   console.log(chalk.cyan('Examples TUI'));
 }
-
