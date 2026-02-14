@@ -26,6 +26,7 @@
     "scripts"
   ],
   "scripts": {
+    "build": "tsup",
     "dev": "tsup --watch",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src",
