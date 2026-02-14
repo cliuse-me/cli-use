@@ -38,7 +38,8 @@
     "demo:rust": "tsx scripts/run-rust-demo.ts",
     "test:ai": "tsx scripts/test-ai.ts",
     "list:models": "tsx scripts/list-models.ts",
-    "build:copy": "tsx scripts/copy-binary.ts"
+    "build:copy": "tsx scripts/copy-binary.ts",
+    "demo:ink": "tsx src/examples/ink-demo.tsx"
   },
   "keywords": [
     "tui",
