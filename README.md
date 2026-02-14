@@ -1,12 +1,12 @@
 # cli-use
 
-> Build beautiful terminal user interfaces with Ink & Native Rust
+> Build beautiful terminal user interfaces with React & Native Rust
 
-**cli-use** is a powerful framework for building stunning terminal applications. It combines the ease of **React/Ink** for standard TUIs with a high-performance **Native Rust/Ratatui** engine for advanced, AI-powered interfaces.
+**cli-use** is a powerful framework for building stunning terminal applications. It combines the ease of **React** for standard TUIs with a high-performance **Native Rust/Ratatui** engine for advanced, AI-powered interfaces.
 
 ## 🎯 Overview
 
-- **React/Ink**: Build interactive CLIs using React components (Tables, Lists, Markdown, Flexbox).
+- **React**: Build interactive CLIs using React components (Tables, Lists, Markdown, Flexbox).
 - **Rust/Ratatui**: Experience ultra-fast, native TUI performance for specialized tools like our AI terminal.
 
 ## ✨ Features
@@ -61,7 +61,7 @@ The `cli-use code` command launches a native Rust application that integrates wi
 
 - [Rust installed](https://rustup.rs/) (automatically detected and built during install).
 
-## 💡 React Examples (Ink)
+## 💡 React Examples
 
 You can also build standard React-based CLIs.
 
@@ -69,7 +69,7 @@ You can also build standard React-based CLIs.
 
 ```tsx
 import React from 'react';
-import { render, Box, Text } from 'ink';
+import { render, Box, Text } from 'cli-use';
 
 const App = () => (
   <Box borderStyle="round" padding={1}>
@@ -84,7 +84,7 @@ render(<App />);
 
 ```tsx
 import React, { useState } from 'react';
-import { render, Box, Text, useInput } from 'ink';
+import { render, Box, Text, useInput } from 'cli-use';
 
 const Counter = () => {
   const [count, setCount] = useState(0);
@@ -110,7 +110,7 @@ render(<Counter />);
 
 - **`Box`** - Container component for layout and styling
 - **`Text`** - Text rendering with colors and styles
-- **`render()`** - Render Ink apps to terminal
+- **`render()`** - Render cli-use apps to terminal
 - **`useInput()`** - Handle keyboard input
 - **`useApp()`** - App instance management
 
@@ -127,7 +127,7 @@ npm run build
 npm run demo:rust
 
 # Run React Examples
-npm run demo:ink
+npm run demo:cli-use
 ```
 
 ## 📁 Project Structure
@@ -142,6 +142,7 @@ cli-use/
 │   ├── cli/             # CLI Entry point
 │   ├── components/      # React components
 │   └── examples/        # Example apps
+│       └── cli-use-demo.tsx # React/cli-use Demo
 ├── package.json
 └── README.md
 ```
@@ -156,4 +157,4 @@ MIT © 2025 cli-use contributors
 
 ---
 
-**Built with ❤️, Ink, and Rust**
+**Built with ❤️, React, and Rust**
