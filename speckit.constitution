@@ -1,0 +1,34 @@
+# Speckit Constitution: CLI-USE
+
+## 1. Core Philosophy: The "Theater" Principle
+*   **Visuals over Logic:** The primary goal of `cli-use` is to demonstrate *what is possible* in a terminal user interface (TUI). We prioritize high-fidelity visuals, smooth animations, and polished layouts over complex backend logic.
+*   **Demo-First:** Every feature and component must be showcase-ready. If it doesn't look good or feel responsive, it doesn't belong in `cli-use`.
+*   **Mock Everything:** Backend calls, database queries, and heavy computations are simulated. Use `setTimeout` and mocked data (static JSON or procedural generation) to mimic latency and data loading. The UI should never "hang" on a real network request or unexpected system behavior.
+*   **Immersive Experience:** The user should feel like they are using a real, powerful tool, even if the underlying actions are simulated.
+
+## 2. Technology Standards (Ink Ecosystem)
+*   **Framework:** All terminals are built strictly using `React` and `Ink`.
+*   **Interaction:** Use established, stable libraries for user input to ensure a robust experience:
+    *   `ink-text-input` for text fields and command prompts.
+    *   `ink-select-input` for menus, dropdowns, and selection lists.
+    *   `ink-spinner` or custom animations for loading states.
+*   **Styling:** 
+    *   Use `Box` (Flexbox) for all layouts. 
+    *   Avoid absolute positioning unless necessary for overlays or specific visual effects.
+    *   Utilize `chalk` (or similar) for consistent color theming (e.g., standard success/error colors).
+
+## 3. Architecture & Distribution
+*   **Gallery Structure:** 
+    *   Demos and example terminals reside in `src/examples/`.
+    *   Each demo must be self-contained and exportable.
+*   **Unified Entry:** All demos must be accessible via the main `cli-use` binary (e.g., `cli-use run <demo-name>` or a main menu selection).
+*   **Shared Components:** Reusable UI elements (Headers, Borders, Logos, Input wrappers) live in `src/components/` to maintain visual consistency and reduce code duplication across different demos.
+
+## 4. Development Workflow
+*   **Typescript Only:** Strict typing is enforced. Demos serve as educational examples, so code quality and type safety are paramount.
+*   **Cross-Platform Compatibility:** Demos must work on standard terminals across operating systems (macOS, Linux, Windows). Avoid OS-specific shell commands unless wrapped in a safe fallback or mock.
+*   **Clean Code:** Follow the project's linting and formatting rules (`eslint`, `prettier`).
+
+## 5. npm Package: `cli-use`
+*   **Public Availability:** The project is shared as the npm package `cli-use`.
+*   **Ease of Use:** Users should be able to run `npx cli-use` (or installed globally) and immediately see the demo content without complex setup.
