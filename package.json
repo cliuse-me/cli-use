@@ -24,23 +24,16 @@
     "README.md",
     "LICENSE",
     "scripts",
-    "native/src",
-    "native/Cargo.toml"
   ],
   "scripts": {
-    "build": "npm run build:rust && tsup && npm run build:copy",
     "dev": "tsup --watch",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src",
     "format": "prettier --write \"src/**/*.ts\" \"src/**/*.tsx\"",
     "prepublishOnly": "npm run build",
-    "build:rust": "cd native && cargo build --release",
-    "demo:rust": "tsx scripts/run-rust-demo.ts",
     "test:ai": "tsx scripts/test-ai.ts",
     "list:models": "tsx scripts/list-models.ts",
-    "build:copy": "tsx scripts/copy-binary.ts",
     "demo:cli-use": "tsx src/examples/cli-use-demo.tsx",
-    "postinstall": "node scripts/postinstall.cjs"
   },
   "keywords": [
     "tui",
