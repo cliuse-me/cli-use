@@ -34,7 +34,8 @@
     "prepublishOnly": "npm run build",
     "test:ai": "tsx scripts/test-ai.ts",
     "list:models": "tsx scripts/list-models.ts",
-    "demo:cli-use": "tsx src/examples/cli-use-demo.tsx"
+    "demo:cli-use": "tsx src/examples/cli-use-demo.tsx",
+    "demo:trading": "tsx src/examples/trading-cli.tsx"
   },
   "keywords": [
     "tui",
@@ -69,7 +70,10 @@
     "commander": "^12.1.0",
     "dotenv": "^17.3.1",
     "eastasianwidth": "^0.3.0",
-    "ink": "3.2.0",
+    "ink": "^4.4.1",
+    "ink-select-input": "^5.0.0",
+    "ink-spinner": "^5.0.0",
+    "ink-text-input": "^5.0.1",
     "react": ">=18.0.0",
     "react-reconciler": "^0.29.2",
     "slice-ansi": "^8.0.0",
