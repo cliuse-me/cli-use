@@ -1,6 +1,8 @@
 # cli-use
 
-> Build beautiful terminal user interfaces with React & Native Rust
+![ScreenRecording2026-02-14at02 27 35-ezgif com-video-to-gif-converter](https://github.com/user-attachments/assets/91ae0ece-59e6-4c26-b563-17bfe0258620)
+
+> Easily build agentic CLI tools 
 
 **cli-use** is a powerful framework for building stunning terminal applications. It combines the ease of **React** for standard TUIs with a high-performance **Native Rust/Ratatui** engine for advanced, AI-powered interfaces.
 
