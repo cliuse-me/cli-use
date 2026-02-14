@@ -19,20 +19,24 @@
 
 ## 🚀 Quick Start
 
-### 1. Install
+### 1. Install via NPM
 
 ```bash
 npm install -g cli-use
-# or for local development
-npm install
 ```
 
 ### 2. Configure AI (Optional)
 
-To use the AI features, get a [Google AI Studio API Key](https://aistudio.google.com/app/apikey) and set it in your environment:
+To use the AI features (`cli-use code`), you need to set your Google Gemini API key.
+
+1.  Get a [Google AI Studio API Key](https://aistudio.google.com/app/apikey).
+2.  Set it in your environment:
 
 ```bash
-# Create a .env file in your project root
+# Set in your current session
+export GOOGLE_API_KEY=your_key_here
+
+# OR create a .env file in the directory where you run the command
 echo "GOOGLE_API_KEY=your_key_here" > .env
 ```
 
