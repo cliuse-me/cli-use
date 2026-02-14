@@ -39,7 +39,7 @@
     "list:models": "tsx scripts/list-models.ts",
     "build:copy": "tsx scripts/copy-binary.ts",
     "demo:cli-use": "tsx src/examples/cli-use-demo.tsx",
-    "postinstall": "tsx scripts/postinstall.ts"
+    "postinstall": "node scripts/postinstall.js"
   },
   "keywords": [
     "tui",
