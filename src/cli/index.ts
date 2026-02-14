@@ -2,16 +2,9 @@
 
 import { Command } from 'commander';
 import chalk from 'chalk';
-import { spawn } from 'child_process';
-import { fileURLToPath } from 'url';
-import path from 'path';
-import fs from 'fs';
 import { render } from 'ink';
 import React from 'react';
 import { CodeInterface } from './code-interface.js';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 const program = new Command();
 

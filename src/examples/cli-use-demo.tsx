@@ -21,6 +21,13 @@ const LOGO_TEXT = `
  ╚═════╝ ╚═════╝ ╚═════╝ ╚══════╝
 `;
 
+// --- Types ---
+interface Message {
+  type: string;
+  symbol: string;
+  content: string;
+}
+
 // --- Components ---
 
 const Splash = ({ input }: { input: string; onEnter: () => void }) => {
@@ -69,7 +76,7 @@ const Splash = ({ input }: { input: string; onEnter: () => void }) => {
   );
 };
 
-const Chat = ({ messages, input }: { messages: any[]; input: string }) => {
+const Chat = ({ messages, input }: { messages: Message[]; input: string }) => {
   return (
     <Box flexDirection="column" height="100%">
       <Box flexDirection="column" flexGrow={1}>
@@ -111,7 +118,7 @@ const Chat = ({ messages, input }: { messages: any[]; input: string }) => {
 const App = () => {
   const [mode, setMode] = useState<'splash' | 'chat'>('splash');
   const [input, setInput] = useState('');
-  const [messages, setMessages] = useState<any[]>([
+  const [messages, setMessages] = useState<Message[]>([
     { type: 'system', symbol: '*', content: 'Welcome to CLI CODE.' },
     { type: 'system', symbol: '*', content: 'I am ready to assist. Type anything to chat.' },
   ]);

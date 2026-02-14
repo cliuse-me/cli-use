@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { render, Box, Text, useInput, useApp } from 'ink';
+import React, { useState } from 'react';
+import { Box, Text, useInput, useApp } from 'ink';
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { generateText } from 'ai';
 import dotenv from 'dotenv';
@@ -26,6 +26,12 @@ const LOGO_TEXT = `
 ╚██████╗╚██████╔╝██████╔╝███████╗
  ╚═════╝ ╚═════╝ ╚═════╝ ╚══════╝
 `;
+
+interface Message {
+  type: string;
+  symbol: string;
+  content: string;
+}
 
 // --- AI Setup ---
 const getGoogleProvider = () => {
@@ -59,13 +65,7 @@ const Splash = ({ input }: { input: string }) => {
       </Box>
 
       {/* Input */}
-      <Box
-        width="100%"
-        borderStyle="single"
-        borderColor="gray"
-        paddingX={1}
-        marginBottom={1}
-      >
+      <Box width="100%" borderStyle="single" borderColor="gray" paddingX={1} marginBottom={1}>
         <Text color="white" bold>
           {'>'} {input}_
         </Text>
@@ -85,7 +85,7 @@ const Splash = ({ input }: { input: string }) => {
   );
 };
 
-const Chat = ({ messages, input }: { messages: any[]; input: string }) => {
+const Chat = ({ messages, input }: { messages: Message[]; input: string }) => {
   return (
     <Box flexDirection="column" height="100%">
       <Box flexDirection="column" flexGrow={1}>
@@ -128,7 +128,7 @@ export const CodeInterface = () => {
   const { exit } = useApp();
   const [mode, setMode] = useState<'splash' | 'chat'>('splash');
   const [input, setInput] = useState('');
-  const [messages, setMessages] = useState<any[]>([
+  const [messages, setMessages] = useState<Message[]>([
     { type: 'system', symbol: '*', content: 'Welcome to CLI CODE.' },
     { type: 'system', symbol: '*', content: 'I am ready to assist. Type anything to chat.' },
   ]);
@@ -149,8 +149,9 @@ export const CodeInterface = () => {
         prompt: prompt,
       });
       addMessage('output', '⎿', text);
-    } catch (error: any) {
-      addMessage('output', '⎿', `Error: ${error.message}`);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      addMessage('output', '⎿', `Error: ${message}`);
     } finally {
       setIsProcessing(false);
     }
@@ -207,12 +208,7 @@ export const CodeInterface = () => {
 
   return (
     <Box flexDirection="column" minHeight={20}>
-      {mode === 'splash' ? (
-        <Splash input={input} />
-      ) : (
-        <Chat messages={messages} input={input} />
-      )}
+      {mode === 'splash' ? <Splash input={input} /> : <Chat messages={messages} input={input} />}
     </Box>
   );
 };
-

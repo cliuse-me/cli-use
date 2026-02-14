@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import type { ReadStream, WriteStream } from 'node:tty';
 import { Buffer, Size } from './types.js';
 import * as readline from 'node:readline';
@@ -52,7 +53,10 @@ export class Terminal {
   private rawMode = false;
   private alternateScreen = false;
 
-  constructor(stdin: ProcessStdin = process.stdin as ProcessStdin, stdout: ProcessStdout = process.stdout as ProcessStdout) {
+  constructor(
+    stdin: ProcessStdin = process.stdin as ProcessStdin,
+    stdout: ProcessStdout = process.stdout as ProcessStdout
+  ) {
     this.stdin = stdin;
     this.stdout = stdout;
     this._size = { cols: stdout.columns || 80, rows: stdout.rows || 24 };
@@ -152,7 +156,12 @@ export class Terminal {
   /**
    * Build ANSI style string from cell
    */
-  private buildStyleString(cell: { fg?: number; bg?: number; bold?: boolean; dim?: boolean }): string {
+  private buildStyleString(cell: {
+    fg?: number;
+    bg?: number;
+    bold?: boolean;
+    dim?: boolean;
+  }): string {
     let style = '';
 
     if (cell.fg !== undefined) {

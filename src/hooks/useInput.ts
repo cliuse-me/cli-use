@@ -48,6 +48,7 @@ export const useInput = (callback: InputCallback, deps: DependencyList = []) => 
     return () => {
       process.stdin.off('keypress', handler);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [callback, ...deps]);
 };
 
@@ -60,6 +61,7 @@ export const useKey = (
   deps: DependencyList = []
 ) => {
   const keyNameString = Array.isArray(keyName) ? keyName.join(',') : keyName;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const keys = useMemo(() => (Array.isArray(keyName) ? keyName : [keyName]), [keyNameString]);
 
   useInput(
