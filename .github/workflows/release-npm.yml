@@ -1,0 +1,47 @@
+name: Release to Public NPM (Major)
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag_name:
+        description: 'Tag to release (e.g. v1.0.0)'
+        required: true
+
+jobs:
+  publish-npm:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag_name }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build package
+        run: npm run build
+
+      - name: Adjust Package for Public NPM
+        run: |
+          # Rename to public package name
+          npm pkg set name="@cli-use/tui"
+          # Ensure publish config points to public NPM
+          npm pkg set publishConfig.access="public"
+          npm pkg delete publishConfig.registry
+
+          echo "📦 Renamed to @cli-use/tui for Public NPM"
+
+      - name: Publish to NPM
+        run: npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

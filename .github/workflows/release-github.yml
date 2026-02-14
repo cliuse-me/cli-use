@@ -1,0 +1,46 @@
+name: Release to GitHub Packages (Dev/Granular)
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  publish-github:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          registry-url: 'https://npm.pkg.github.com'
+          scope: '@cliuse-me'
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build package
+        run: npm run build
+
+      - name: Adjust Package for GitHub Registry
+        run: |
+          # Rename to scoped package for GitHub registry
+          npm pkg set name="@cliuse-me/cli-use"
+          # Ensure publish config points to GitHub
+          npm pkg set publishConfig.registry="https://npm.pkg.github.com"
+
+          echo "📦 Renamed to @cliuse-me/cli-use for GitHub Packages"
+
+      - name: Publish to GitHub Packages
+        run: npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
