@@ -1,34 +1,65 @@
 # cli-use
 
-> Build beautiful terminal user interfaces with Ink
+> Build beautiful terminal user interfaces with Ink & Native Rust
 
-A powerful TUI (Terminal User Interface) framework using **Ink** (React for CLIs). Create stunning terminal interfaces with tables, lists, markdown rendering, custom styles, and flex-like layouts.
+**cli-use** is a powerful framework for building stunning terminal applications. It combines the ease of **React/Ink** for standard TUIs with a high-performance **Native Rust/Ratatui** engine for advanced, AI-powered interfaces.
 
 ## 🎯 Overview
 
-`cli-use` lets you build beautiful terminal applications using **Ink** - the most popular React-based TUI framework. Create tables, lists, markdown rendering, custom styles, and flex-like layouts - all with React components you already know.
+- **React/Ink**: Build interactive CLIs using React components (Tables, Lists, Markdown, Flexbox).
+- **Rust/Ratatui**: Experience ultra-fast, native TUI performance for specialized tools like our AI terminal.
 
 ## ✨ Features
 
-- **🎨 Beautiful Styling** - CSS-like properties for stunning interfaces
-- **📊 Tables** - Render beautiful tables with borders, colors, and alignment
-- **📝 Lists** - Create interactive lists with selection states and custom enumerators
-- **📖 Markdown** - Render markdown with themes
-- **📐 Layouts** - Flex-like horizontal/vertical layouts
-- **🔧 TypeScript** - Full type safety and excellent IDE support
-- **⚡ Cross-Platform** - Works on macOS, Linux, and Windows
+- **🤖 AI-Powered Terminal** - Integrated Google Gemini AI chat client (Native Rust).
+- **🎨 Beautiful Styling** - CSS-like properties for stunning interfaces.
+- **📊 Rich Components** - Tables, Lists, Markdown, and Layouts out of the box.
+- **⚡ Hybrid Architecture** - Uses Node.js for flexibility and Rust for raw TUI performance.
+- **🔧 TypeScript** - Full type safety and excellent IDE support.
 
 ## 🚀 Quick Start
 
-```bash
-# Install
-npm install cli-use
+### 1. Install
 
-# Run the demo
-npm run example:ink-demo
+```bash
+npm install -g cli-use
+# or for local development
+npm install
 ```
 
-## 💡 Examples
+### 2. Configure AI (Optional)
+
+To use the AI features, get a [Google AI Studio API Key](https://aistudio.google.com/app/apikey) and set it in your environment:
+
+```bash
+# Create a .env file in your project root
+echo "GOOGLE_API_KEY=your_key_here" > .env
+```
+
+### 3. Run the AI Terminal
+
+Launch the high-performance AI chat interface:
+
+```bash
+cli-use code
+```
+
+## 🤖 CLI CODE (AI Terminal)
+
+The `cli-use code` command launches a native Rust application that integrates with **Google Gemini**.
+
+- **Splash Screen**: Instant startup with a stylized "CLI CODE" ASCII art.
+- **Instant Input**: Start typing your query immediately on the home screen.
+- **Streaming Responses**: Real-time AI streaming powered by Vercel AI SDK (Node.js) and Ratatui (Rust).
+- **Performance**: Zero-latency UI rendering thanks to the native Rust backend.
+
+**Prerequisites for Native Features:**
+
+- [Rust installed](https://rustup.rs/) (automatically detected and built during install).
+
+## 💡 React Examples (Ink)
+
+You can also build standard React-based CLIs.
 
 ### Basic App
 
@@ -55,7 +86,7 @@ const Counter = () => {
   const [count, setCount] = useState(0);
 
   useInput((input, key) => {
-    if (key.return) setCount(c => c + 1);
+    if (key.return) setCount((c) => c + 1);
   });
 
   return (
@@ -85,30 +116,29 @@ render(<Counter />);
 # Install dependencies
 npm install
 
-# Build
+# Build the project (including Rust native binary)
 npm run build
 
-# Run tests
-npm run test:unit
+# Run the AI Terminal (Dev Mode)
+npm run demo:rust
 
-# Type check
-npm run typecheck
-
-# Run demo
-npm run example:ink-demo
+# Run React Examples
+npm run run example:ink-demo
 ```
 
 ## 📁 Project Structure
 
 ```
 cli-use/
+├── native/              # Rust/Ratatui source code
+│   └── src/
+│       └── main.rs      # Native TUI entry point
 ├── src/
-│   ├── renderer/
-│   │   └── terminal.ts          # Terminal handling
-│   └── examples/
-│   │   └── ink-demo.tsx        # Interactive demo
+│   ├── ai-worker.ts     # Node.js AI Bridge (Vercel AI SDK)
+│   ├── cli/             # CLI Entry point
+│   ├── components/      # React components
+│   └── examples/        # Example apps
 ├── package.json
-├── tsconfig.json
 └── README.md
 ```
 
@@ -122,4 +152,4 @@ MIT © 2025 cli-use contributors
 
 ---
 
-**Built with ❤️ and Ink**
+**Built with ❤️, Ink, and Rust**
