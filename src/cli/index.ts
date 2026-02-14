@@ -71,7 +71,7 @@ const options = program.parse(process.argv);
 // Handle --demo flag
 if (options.opts().demo) {
   // Since we're using ESM, we use import to run the ink demo
-  import('../examples/ink-demo.tsx').catch((err: unknown) => {
+  import('../examples/cli-use-demo.tsx').catch((err: unknown) => {
     console.error('Failed to run demo:', err);
     process.exit(1);
   });

@@ -127,7 +127,7 @@ npm run build
 npm run demo:rust
 
 # Run React Examples
-npm run run example:ink-demo
+npm run demo:ink
 ```
 
 ## 📁 Project Structure
