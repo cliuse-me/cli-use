@@ -24,7 +24,8 @@
     "README.md",
     "LICENSE",
     "scripts",
-    "native"
+    "native/src",
+    "native/Cargo.toml"
   ],
   "scripts": {
     "build": "npm run build:rust && tsup && npm run build:copy",
