@@ -34,13 +34,13 @@ try {
   if (build.status === 0) {
     const isWindows = process.platform === 'win32';
     const ext = isWindows ? '.exe' : '';
-    const src = path.join(nativeDir, 'target/release/ratatui-demo' + ext);
+    const src = path.join(nativeDir, 'target/release/cli-use-demo' + ext);
 
     // Install to dist/bin
     const destDir = path.resolve(packageRoot, 'dist/bin');
     if (!fs.existsSync(destDir)) fs.mkdirSync(destDir, { recursive: true });
 
-    const dest = path.join(destDir, 'ratatui-demo' + ext);
+    const dest = path.join(destDir, 'cli-use-demo' + ext);
 
     try {
       fs.copyFileSync(src, dest);

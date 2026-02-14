@@ -39,7 +39,7 @@ program
   .command('run <example>')
   .description('Run an example application')
   .action((exampleName) => {
-    if (exampleName === 'ratatui') {
+    if (exampleName === 'cli-use') {
       showRustDemo();
     } else {
       showRunTUI(exampleName);
@@ -79,17 +79,17 @@ function showRustDemo() {
   const isWindows = process.platform === 'win32';
   const extension = isWindows ? '.exe' : '';
 
-  const prodBinaryPath = path.resolve(__dirname, `../bin/ratatui-demo${extension}`);
+  const prodBinaryPath = path.resolve(__dirname, `../bin/cli-use-demo${extension}`);
   const devBinaryPath = path.resolve(
     __dirname,
-    `../../native/target/release/ratatui-demo${extension}`
+    `../../native/target/release/cli-use-demo${extension}`
   );
 
   const binaryPath = fs.existsSync(prodBinaryPath) ? prodBinaryPath : devBinaryPath;
 
   const workerPath = path.resolve(__dirname, '../ai-worker.js');
 
-  console.log(chalk.cyan('Starting Ratatui Demo...'));
+  console.log(chalk.cyan('Starting cli-use Demo...'));
 
   const child = spawn(binaryPath, [workerPath], {
     stdio: 'inherit',
@@ -586,7 +586,7 @@ function showRunTUI(exampleName: string) {
       tags: ['interactive', 'state'],
     },
     {
-      name: 'ratatui',
+      name: 'cli-use',
       title: 'Rust Demo',
       desc: 'Native Rust TUI integration',
       tags: ['rust', 'advanced'],

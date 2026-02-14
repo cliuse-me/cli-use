@@ -1,0 +1,7 @@
+native/target
+src
+.github
+tsup.config.ts
+eslint.config.mjs
+.gitignore
+.prettierrc

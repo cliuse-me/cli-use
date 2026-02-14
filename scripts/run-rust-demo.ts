@@ -1,10 +1,10 @@
 import { spawn } from 'child_process';
 import path from 'path';
 
-const rustBinaryPath = path.resolve(process.cwd(), 'native/target/release/ratatui-demo');
+const rustBinaryPath = path.resolve(process.cwd(), 'native/target/release/cli-use-demo');
 const workerPath = path.resolve(process.cwd(), 'src/ai-worker.ts');
 
-console.log('Starting Ratatui Demo...');
+console.log('Starting cli-use Demo...');
 console.log(`Binary path: ${rustBinaryPath}`);
 console.log(`Worker path: ${workerPath}`);
 

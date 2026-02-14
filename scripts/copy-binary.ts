@@ -3,7 +3,7 @@ import path from 'path';
 
 const isWindows = process.platform === 'win32';
 const extension = isWindows ? '.exe' : '';
-const binaryName = 'ratatui-demo' + extension;
+const binaryName = 'cli-use-demo' + extension;
 
 const srcPath = path.resolve(process.cwd(), 'native/target/release', binaryName);
 const destDir = path.resolve(process.cwd(), 'dist/bin');
