@@ -6,6 +6,7 @@ import { createRequire } from 'module';
 import { spawn } from 'child_process';
 import { fileURLToPath } from 'url';
 import path from 'path';
+import fs from 'fs';
 
 const require = createRequire(import.meta.url);
 const __filename = fileURLToPath(import.meta.url);
@@ -79,14 +80,15 @@ if (options.opts().demo) {
 function showRustDemo() {
   const isWindows = process.platform === 'win32';
   const extension = isWindows ? '.exe' : '';
-  const binaryPath = path.resolve(
+
+  const prodBinaryPath = path.resolve(__dirname, `../bin/ratatui-demo${extension}`);
+  const devBinaryPath = path.resolve(
     __dirname,
     `../../native/target/release/ratatui-demo${extension}`
   );
-  // Resolve worker path relative to built CLI (dist/cli/index.js -> dist/ai-worker.js)
-  // ../ai-worker.js because both are in dist/cli and dist/
-  // Wait, tsup output: dist/cli/index.js and dist/ai-worker.js
-  // So it is ../ai-worker.js
+
+  const binaryPath = fs.existsSync(prodBinaryPath) ? prodBinaryPath : devBinaryPath;
+
   const workerPath = path.resolve(__dirname, '../ai-worker.js');
 
   console.log(chalk.cyan('Starting Ratatui Demo...'));
