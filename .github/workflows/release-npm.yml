@@ -1,11 +1,14 @@
-name: Release to Public NPM (Major)
+name: Release to Public NPM
 
 on:
   workflow_dispatch:
     inputs:
       tag_name:
         description: 'Tag to release (e.g. v1.0.0)'
-        required: true
+        required: false
+  push:
+    tags:
+      - 'v*'
 
 jobs:
   publish-npm:
@@ -14,7 +17,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.tag_name }}
+          ref: ${{ inputs.tag_name || github.ref }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -38,10 +41,11 @@ jobs:
           # Ensure publish config points to public NPM
           npm pkg set publishConfig.access="public"
           npm pkg delete publishConfig.registry
-
+          
           echo "📦 Renamed to @cli-use/tui for Public NPM"
 
       - name: Publish to NPM
         run: npm publish --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
