@@ -22,7 +22,9 @@
   "files": [
     "dist",
     "README.md",
-    "LICENSE"
+    "LICENSE",
+    "scripts",
+    "native"
   ],
   "scripts": {
     "build": "npm run build:rust && tsup && npm run build:copy",
