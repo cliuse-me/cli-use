@@ -27,9 +27,6 @@ export const Progress: React.FC<ProgressProps> = ({
   width = 20,
   label,
 }) => {
-  const percentage = Math.min(Math.max(value / max, 0), 1);
-  const filledWidth = Math.floor(percentage * width);
-
   const props: ProgressProps = {
     value,
     max,

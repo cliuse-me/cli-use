@@ -1,4 +1,3 @@
-import type { HostConfig } from 'react-reconciler';
 import type { Buffer } from '../renderer/types.js';
 
 export interface TUIProps {
@@ -42,22 +41,39 @@ export interface TUIInstance {
   node: TUIElement;
 }
 
-// @ts-ignore - React reconciler types are complex
 export const hostConfig = {
   supportsPersistence: false,
   supportsMutation: true,
   createInstance(type: any, props: any) {
-    return { type, props: { ...props }, children: [], parent: null, node: { type, props: { ...props }, children: [] } };
+    return {
+      type,
+      props: { ...props },
+      children: [],
+      parent: null,
+      node: { type, props: { ...props }, children: [] },
+    };
   },
   appendInitialChild(parentInstance: any, child: any) {
     parentInstance.children.push(child);
     child.parent = parentInstance;
   },
-  finalizeInitialChildren() { return false; },
-  prepareUpdate() { return {}; },
-  shouldSetTextContent(type: any) { return type === 'TEXT'; },
+  finalizeInitialChildren() {
+    return false;
+  },
+  prepareUpdate() {
+    return {};
+  },
+  shouldSetTextContent(type: any) {
+    return type === 'TEXT';
+  },
   createTextInstance(text: any) {
-    return { type: 'TEXT', props: { children: text }, children: [], parent: null, node: { type: 'TEXT', props: { children: text }, children: [] } };
+    return {
+      type: 'TEXT',
+      props: { children: text },
+      children: [],
+      parent: null,
+      node: { type: 'TEXT', props: { children: text }, children: [] },
+    };
   },
   appendChildToContainer(container: any, child: any) {
     container.root = child;
@@ -74,7 +90,9 @@ export const hostConfig = {
       child.parent = null;
     }
   },
-  removeChildFromContainer(_container: any, child: any) { child.parent = null; },
+  removeChildFromContainer(_container: any, child: any) {
+    child.parent = null;
+  },
   insertBefore(parentInstance: any, child: any, beforeChild: any) {
     const index = parentInstance.children.indexOf(beforeChild);
     if (index !== -1) {
@@ -99,26 +117,42 @@ export const hostConfig = {
       instance.node.props.children = '';
     }
   },
-  getPublicInstance(instance: any) { return instance; },
-  getRootHostContext(rootContainer: any) { return rootContainer; },
-  getChildHostContext(parentHostContext: any) { return parentHostContext; },
-  prepareForCommit() { return null; },
+  getPublicInstance(instance: any) {
+    return instance;
+  },
+  getRootHostContext(rootContainer: any) {
+    return rootContainer;
+  },
+  getChildHostContext(parentHostContext: any) {
+    return parentHostContext;
+  },
+  prepareForCommit() {
+    return null;
+  },
   resetAfterCommit(container: any) {
     if (container.root) {
       renderToBuffer(container.root, container.buffer);
     }
   },
-  shouldAttemptEagerTransition() { return false; },
+  shouldAttemptEagerTransition() {
+    return false;
+  },
   scheduleTimeout: setTimeout,
   cancelTimeout: clearTimeout,
   noTimeout: -1,
-  getCurrentEventPriority() { return 0; },
-  getInstanceFromNode(node: any) { return node; },
+  getCurrentEventPriority() {
+    return 0;
+  },
+  getInstanceFromNode(node: any) {
+    return node;
+  },
   beforeActiveInstanceBlur() {},
   afterActiveInstanceBlur() {},
   preparePortalMount() {},
   prepareScopeUpdate() {},
-  getInstanceFromScope() { return null; },
+  getInstanceFromScope() {
+    return null;
+  },
   detachDeletedInstance() {},
   isPrimaryRenderer: true,
   supportsHydration: false,

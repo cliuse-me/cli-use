@@ -1,9 +1,5 @@
-import { useState, useCallback, useRef, useEffect } from 'react';
-
-interface FocusableElement {
-  id: string;
-  index: number;
-}
+import { useState, useCallback, useEffect } from 'react';
+import readline from 'node:readline';
 
 interface KeyPressEvent {
   name?: string;
@@ -14,7 +10,6 @@ interface KeyPressEvent {
  */
 export const useFocus = (initialFocus = 0, itemCount: number) => {
   const [focusedIndex, setFocusedIndex] = useState(initialFocus);
-  const focusableRefs = useRef<Map<number, HTMLElement>>(new Map());
 
   const focusNext = useCallback(() => {
     setFocusedIndex((current) => (current + 1) % itemCount);
@@ -24,22 +19,23 @@ export const useFocus = (initialFocus = 0, itemCount: number) => {
     setFocusedIndex((current) => (current - 1 + itemCount) % itemCount);
   }, [itemCount]);
 
-  const setFocus = useCallback((index: number) => {
-    if (index >= 0 && index < itemCount) {
-      setFocusedIndex(index);
-    }
-  }, [itemCount]);
-
-  const isFocused = useCallback(
-    (index: number) => index === focusedIndex,
-    [focusedIndex]
+  const setFocus = useCallback(
+    (index: number) => {
+      if (index >= 0 && index < itemCount) {
+        setFocusedIndex(index);
+      }
+    },
+    [itemCount]
   );
+
+  const isFocused = useCallback((index: number) => index === focusedIndex, [focusedIndex]);
 
   // Keyboard navigation
   useEffect(() => {
-    const readline = require('node:readline');
     readline.emitKeypressEvents(process.stdin);
-    process.stdin.setRawMode(true);
+    if (process.stdin.isTTY) {
+      process.stdin.setRawMode(true);
+    }
 
     const handleKeyPress = (_chunk: Buffer, key: KeyPressEvent) => {
       if (key.name === 'tab' || key.name === 'right') {

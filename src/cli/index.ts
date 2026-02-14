@@ -2,13 +2,11 @@
 
 import { Command } from 'commander';
 import chalk from 'chalk';
-import { createRequire } from 'module';
 import { spawn } from 'child_process';
 import { fileURLToPath } from 'url';
 import path from 'path';
 import fs from 'fs';
 
-const require = createRequire(import.meta.url);
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 

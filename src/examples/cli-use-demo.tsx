@@ -3,8 +3,6 @@ import { render, Box, Text, useInput } from 'ink';
 
 // --- Constants ---
 const CLAUDE_ORANGE = '#D97757';
-const DARK_BG = '#151515';
-const INPUT_BG = '#303030';
 const FOOTER_TEXT = '#708090'; // Slate Gray
 const FOOTER_HIGHLIGHT = '#FFFFFF';
 
@@ -25,7 +23,7 @@ const LOGO_TEXT = `
 
 // --- Components ---
 
-const Splash = ({ input, onEnter }: { input: string; onEnter: () => void }) => {
+const Splash = ({ input }: { input: string; onEnter: () => void }) => {
   return (
     <Box flexDirection="column" alignItems="center" height="100%" justifyContent="space-between">
       {/* Header */}

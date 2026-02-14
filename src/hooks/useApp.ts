@@ -10,9 +10,9 @@ interface AppOptions {
 /**
  * useApp - Hook for managing the application lifecycle
  */
-export const useApp = (options: AppOptions = {}) => {
+export const useApp = (_options: AppOptions = {}) => {
   const rendererRef = useRef<Renderer | null>(null);
-  const [size, setSize] = useState({ cols: 80, rows: 24 });
+  const [size] = useState({ cols: 80, rows: 24 });
   const [running, setRunning] = useState(false);
 
   useEffect(() => {

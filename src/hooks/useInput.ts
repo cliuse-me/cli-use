@@ -1,4 +1,5 @@
-import { useEffect, useCallback } from 'react';
+import { useEffect, useCallback, DependencyList, useMemo } from 'react';
+import readline from 'node:readline';
 
 interface InputEvent {
   key: string;
@@ -22,10 +23,8 @@ type InputCallback = (input: InputEvent) => void;
 /**
  * useInput - Hook for capturing keyboard input
  */
-export const useInput = (callback: InputCallback, deps: any[] = []) => {
+export const useInput = (callback: InputCallback, deps: DependencyList = []) => {
   useEffect(() => {
-    const readline = require('node:readline');
-
     const handler = (chunk: Buffer, key: ReadlineKey) => {
       if (!key) return;
 
@@ -39,7 +38,9 @@ export const useInput = (callback: InputCallback, deps: any[] = []) => {
       });
     };
 
-    process.stdin.setRawMode(true);
+    if (process.stdin.isTTY) {
+      process.stdin.setRawMode(true);
+    }
     readline.emitKeypressEvents(process.stdin);
 
     process.stdin.on('keypress', handler);
@@ -56,9 +57,10 @@ export const useInput = (callback: InputCallback, deps: any[] = []) => {
 export const useKey = (
   keyName: string | string[],
   callback: () => void,
-  deps: any[] = []
+  deps: DependencyList = []
 ) => {
-  const keys = Array.isArray(keyName) ? keyName : [keyName];
+  const keyNameString = Array.isArray(keyName) ? keyName.join(',') : keyName;
+  const keys = useMemo(() => (Array.isArray(keyName) ? keyName : [keyName]), [keyNameString]);
 
   useInput(
     useCallback(

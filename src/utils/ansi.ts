@@ -1,6 +1,7 @@
 /**
  * Strip ANSI escape codes from a string
  */
+/* eslint-disable no-control-regex */
 export function stripAnsi(text: string): string {
   return text.replace(/\x1b\[[0-9;]*m/g, '');
 }

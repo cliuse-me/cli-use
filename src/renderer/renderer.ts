@@ -1,4 +1,4 @@
-import { Buffer, Size, Rect } from './types.js';
+import { Buffer, Size } from './types.js';
 import { Terminal } from './terminal.js';
 
 /**

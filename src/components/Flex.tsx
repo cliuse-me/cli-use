@@ -10,14 +10,8 @@ export interface FlexProps extends BoxProps {
 /**
  * Flex - A flex container for flexible layouts
  */
-export const Flex: React.FC<FlexProps> = ({
-  children,
-  grow = 0,
-  shrink = 1,
-  basis = 'auto',
-  ...boxProps
-}) => {
-  const props: BoxProps = {
+export const Flex: React.FC<FlexProps> = ({ children, ...boxProps }) => {
+  const props: BoxProps & FlexProps = {
     ...boxProps,
     children,
   };

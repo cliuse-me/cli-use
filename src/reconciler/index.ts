@@ -1,6 +1,6 @@
 import ReactReconciler from 'react-reconciler';
 import { hostConfig, TUIContainer, TUIProps } from './host-config.js';
-import { Buffer, Renderer } from '../renderer/index.js';
+import { Renderer } from '../renderer/index.js';
 
 // Import React types
 import type { ReactElement } from 'react';
@@ -26,11 +26,7 @@ export const createRoot = (renderer: Renderer): TUIContainer => {
 /**
  * Render a React element to the terminal
  */
-export const render = (
-  element: ReactElement,
-  container: TUIContainer,
-  renderer: Renderer
-) => {
+export const render = (element: ReactElement, container: TUIContainer, renderer: Renderer) => {
   const reconciler = createReconciler();
 
   reconciler.updateContainer(element, container, null, () => {
