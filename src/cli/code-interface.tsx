@@ -3,9 +3,22 @@ import { Box, Text, useInput, useApp } from 'ink';
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { generateText } from 'ai';
 import dotenv from 'dotenv';
+import os from 'os';
+import path from 'path';
+import fs from 'fs';
 
-// Load environment variables
+// Load environment variables from local .env
 dotenv.config();
+
+// Try loading from global config in home directory
+try {
+  const homeEnvPath = path.join(os.homedir(), '.cli-use-env');
+  if (fs.existsSync(homeEnvPath)) {
+    dotenv.config({ path: homeEnvPath });
+  }
+} catch {
+  // Ignore error
+}
 
 // --- Constants ---
 const CLAUDE_ORANGE = '#D97757';
@@ -138,7 +151,11 @@ export const CodeInterface = () => {
 
   const handleAIRequest = async (prompt: string) => {
     if (!google) {
-      addMessage('output', '⎿', 'Error: No API Key found. Set GOOGLE_API_KEY in .env');
+      addMessage(
+        'output',
+        '⎿',
+        'Error: No API Key found. Set GOOGLE_API_KEY in .env, ~/.cli-use-env, or export it.'
+      );
       setIsProcessing(false);
       return;
     }

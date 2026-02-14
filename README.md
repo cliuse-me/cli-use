@@ -38,6 +38,9 @@ export GOOGLE_API_KEY=your_key_here
 
 # OR create a .env file in the directory where you run the command
 echo "GOOGLE_API_KEY=your_key_here" > .env
+
+# OR create a global config file in your home directory (Recommended)
+echo "GOOGLE_API_KEY=your_key_here" > ~/.cli-use-env
 ```
 
 ### 3. Run the AI Terminal
