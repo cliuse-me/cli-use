@@ -23,7 +23,7 @@
     "dist",
     "README.md",
     "LICENSE",
-    "scripts",
+    "scripts"
   ],
   "scripts": {
     "dev": "tsup --watch",
@@ -33,7 +33,7 @@
     "prepublishOnly": "npm run build",
     "test:ai": "tsx scripts/test-ai.ts",
     "list:models": "tsx scripts/list-models.ts",
-    "demo:cli-use": "tsx src/examples/cli-use-demo.tsx",
+    "demo:cli-use": "tsx src/examples/cli-use-demo.tsx"
   },
   "keywords": [
     "tui",
