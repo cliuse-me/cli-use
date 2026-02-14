@@ -6,16 +6,18 @@ The `charsm` library (used for styled rendering) **does not support macOS** beca
 
 ## Solutions
 
-### Option 1: Use Ink (Recommended) ⭐
+### Option 1: Use cli-use (Recommended) ⭐
 
-**Ink** is a React-based TUI library that works on all platforms including macOS.
+**cli-use** is a React-based TUI library that works on all platforms including macOS.
 
 **Installation:**
+
 ```bash
-npm install ink@^3
+npm install cli-use
 ```
 
 **Why it's great:**
+
 - ✅ Cross-platform (macOS, Linux, Windows)
 - ✅ React-based (matches your project's architecture)
 - ✅ Actively maintained
@@ -24,18 +26,18 @@ npm install ink@^3
 - ✅ Hooks (useInput, useApp, useStdout)
 
 **Resources:**
-- Website: https://ink.js.org/
-- GitHub: https://github.com/vadimdemedes/ink
-- npm: `npm install ink`
+
+- npm: `npm install cli-use`
 
 **Example:**
+
 ```tsx
 import React from 'react';
-import { render, Box, Text } from 'ink';
+import { render, Box, Text } from 'cli-use';
 
 const App = () => (
   <Box borderStyle="round" padding={1}>
-    <Text bold>Hello from Ink!</Text>
+    <Text bold>Hello from cli-use!</Text>
   </Box>
 );
 
@@ -47,54 +49,56 @@ render(<App />);
 **Blessed** is a mature curses-like library for Node.js that works on macOS.
 
 **Installation:**
+
 ```bash
 npm install blessed
 ```
 
 **Resources:**
+
 - GitHub: https://github.com/chjj/blessed
 - npm: `npm install blessed`
 
 ### Option 3: Wait for Charsm macOS Support
 
 The charsm library is actively developed. Check for updates:
+
 - https://github.com/SfundoMhlungu/charsm
 
 ## Recommendation
 
-For **cli-use**, I recommend using **Ink** because:
+For **cli-use**, I recommend using **React** because:
 
 1. **Your project already uses React** - No architecture change needed
-2. **Mature ecosystem** - Ink has been around since 2017
+2. **Mature ecosystem**
 3. **Active maintenance** - Regular updates and good community
 4. **TypeScript-first** - Built with TS from the ground up
 5. **Cross-platform** - Works identically on macOS, Linux, Windows
 
 ### Quick Comparison
 
-| Feature | Ink | Blessed | Charsm |
-|---------|------|---------|---------|
-| macOS Support | ✅ | ✅ | ❌ |
-| React-based | ✅ | ❌ | ❌ |
-| TypeScript | ✅ | ✅ | ✅ |
-| Actively Maintained | ✅ | ✅ | ✅ |
-| WebAssembly | ❌ | ❌ | ✅ |
+| Feature             | cli-use | Blessed | Charsm |
+| ------------------- | ------- | ------- | ------ |
+| macOS Support       | ✅      | ✅      | ❌     |
+| React-based         | ✅      | ❌      | ❌     |
+| TypeScript          | ✅      | ✅      | ✅     |
+| Actively Maintained | ✅      | ✅      | ✅     |
+| WebAssembly         | ❌      | ❌      | ✅     |
 
 ## Next Steps
 
 To add full-styled demo support for macOS:
 
-1. **Add Ink-based examples:**
+1. **Add cli-use-based examples:**
+
    ```bash
-   npm run example:demo-ink      # Full showcase
-   npm run example:counter-ink   # Interactive counter
-   npm run example:todos-ink     # Interactive todos
+   npm run demo:cli-use      # Full showcase
    ```
 
 2. **Keep charsm for Linux/Windows:**
    - Charsm provides beautiful styling with WebAssembly performance
-   - Can use Ink for macOS, Charsm for Linux/Windows
+   - Can use React for macOS, Charsm for Linux/Windows
    - Runtime detection to choose renderer
 
 3. **Example implementation:**
-   See ALTERNATIVES_EXAMPLE.md for a working Ink demo
+   See ALTERNATIVES_EXAMPLE.md for a working React demo
