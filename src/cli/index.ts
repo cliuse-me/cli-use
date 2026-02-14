@@ -79,17 +79,60 @@ function showRustDemo() {
   const isWindows = process.platform === 'win32';
   const extension = isWindows ? '.exe' : '';
 
-  const prodBinaryPath = path.resolve(__dirname, `../bin/cli-use-demo${extension}`);
+  // In global install, binary is in <pkg>/dist/bin/
+  // In dev/local build, binary is in <pkg>/native/target/release/
+
+  const prodBinaryPath = path.resolve(__dirname, `../bin/ratatui-demo${extension}`);
   const devBinaryPath = path.resolve(
     __dirname,
     `../../native/target/release/cli-use-demo${extension}`
   );
 
-  const binaryPath = fs.existsSync(prodBinaryPath) ? prodBinaryPath : devBinaryPath;
+  let binaryPath = '';
+
+  if (fs.existsSync(prodBinaryPath)) {
+    binaryPath = prodBinaryPath;
+  } else if (fs.existsSync(devBinaryPath)) {
+    binaryPath = devBinaryPath;
+  } else {
+    // Fallback: Check if postinstall put it in dist/bin/ratatui-demo (old name)
+    // postinstall.cjs lines 37 and 43 use cli-use-demo or ratatui-demo depending on version.
+    // Current postinstall.cjs uses 'cli-use-demo'.
+    // But let's check both names in dist/bin
+    const prodBinaryPathAlt = path.resolve(__dirname, `../bin/cli-use-demo${extension}`);
+    if (fs.existsSync(prodBinaryPathAlt)) {
+      binaryPath = prodBinaryPathAlt;
+    }
+  }
 
   const workerPath = path.resolve(__dirname, '../ai-worker.js');
 
   console.log(chalk.cyan('Starting cli-use Demo...'));
+
+  if (!binaryPath || !fs.existsSync(binaryPath)) {
+    console.error(chalk.red('Error: Native binary not found.'));
+    console.log(
+      chalk.yellow('Please try running: npm run build:rust (in dev) or npm rebuild (in prod)')
+    );
+    console.log(`Checked paths:\n- ${prodBinaryPath}\n- ${devBinaryPath}`);
+    return;
+  }
+
+  // Check architecture/permissions
+  try {
+    if (process.platform !== 'win32') {
+      fs.accessSync(binaryPath, fs.constants.X_OK);
+    }
+  } catch (e) {
+    console.warn(
+      chalk.yellow('Warning: Binary might not be executable. Attempting to fix permissions...')
+    );
+    try {
+      fs.chmodSync(binaryPath, '755');
+    } catch (err) {
+      console.error(chalk.red('Failed to set permissions:'), err);
+    }
+  }
 
   const child = spawn(binaryPath, [workerPath], {
     stdio: 'inherit',
