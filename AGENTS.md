@@ -2,9 +2,9 @@
 
 ## Git Protocols
 
-**CRITICAL: NEVER commit changes to the repository without explicit user authorization.**
-Always ask for permission before running `git commit`.
-**NEVER commit to git without an explicit command. NEVER commit after you "think" you completed a task.**
+**CRITICAL: NEVER commit changes to the repository autonomously.**
+You must receive the explicit command "COMMIT TO GIT" from the user.
+This command is valid **ONLY** for the current execution/response. Do not assume it applies to future actions or turns.
 
 ## CI/CD Verification Protocol
 

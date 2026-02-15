@@ -539,7 +539,7 @@ const AIPredictionPanel = ({
 
   return (
     <Layer title="AI PREDICTION" paddingX={0}>
-      <Box flexDirection="row" backgroundColor={LAYERS.commandBar}>
+      <Box flexDirection="row" backgroundColor="#222222">
         <Box width={1} backgroundColor={LAYERS.orange} />
         <Box paddingX={1} paddingY={0} flexGrow={1}>
           {isLoading ? (
