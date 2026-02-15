@@ -19,7 +19,7 @@ const googleSearchTool = google.tools.googleSearch({});
 export const getBitcoinPrediction = async (): Promise<string> => {
   try {
     const { text } = await generateText({
-      model: google('gemini-2.0-pro-exp-02-05'),
+      model: google('gemini-2.0-pro'),
       tools: {
         googleSearch: googleSearchTool,
       },
