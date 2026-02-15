@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { render, Box, Text, useInput } from 'ink';
+import TextInput from 'ink-text-input';
 
 // --- Palette Definition ---
 // Using different shades of dark to create "layers"
@@ -21,6 +22,7 @@ const LAYERS = {
   // Structure
   headerBar: '#555555',
   border: '#555555',
+  commandBar: '#1a1a1a', // Match surrounding
 };
 
 const ORDER_BOOK = [
@@ -293,6 +295,37 @@ const OrderBook = () => (
 
 // --- Main App ---
 
+const CommandBar = () => {
+  const [command, setCommand] = useState('');
+
+  const handleSubmit = (val: string) => {
+    setCommand(''); // Clear on submit for now
+    // Logic to handle command would go here
+  };
+
+  return (
+    <Box
+      flexDirection="row"
+      paddingX={1}
+      paddingY={0}
+      borderStyle="round"
+      borderColor={LAYERS.border}
+      backgroundColor={LAYERS.commandBar}
+      width="100%"
+    >
+      <Text color={LAYERS.accent}>➜ </Text>
+      <TextInput
+        value={command}
+        onChange={setCommand}
+        onSubmit={handleSubmit}
+        placeholder="Type a command..."
+      />
+      <Box flexGrow={1} />
+      <Text color={LAYERS.textDim}>READY</Text>
+    </Box>
+  );
+};
+
 const App = () => {
   useInput((input, key) => {
     if (key.escape || (input === 'c' && key.ctrl)) {
@@ -331,6 +364,9 @@ const App = () => {
             <OrderBook />
           </Box>
         </Box>
+
+        {/* New Command Bar */}
+        <CommandBar />
       </Box>
     </Box>
   );
