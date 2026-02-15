@@ -4,6 +4,7 @@
 
 **CRITICAL: NEVER commit changes to the repository without explicit user authorization.**
 Always ask for permission before running `git commit`.
+**NEVER commit to git without an explicit command. NEVER commit after you "think" you completed a task.**
 
 ## CI/CD Verification Protocol
 

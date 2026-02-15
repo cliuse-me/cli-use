@@ -49,7 +49,14 @@ const defaultData: Data = { market_data: [] };
 // We initialize it inside a function or lazily to avoid top-level await issues in some environments,
 // but for this CLI app, we can initialize it. However, since lowdb is ESM, let's keep it simple.
 // Note: In a real app, you might want to handle the db path more carefully.
-const db = await JSONFilePreset<Data>('trading-db.json', defaultData);
+let dbInstance: any = null;
+
+const getDb = async () => {
+  if (!dbInstance) {
+    dbInstance = await JSONFilePreset<Data>('trading-db.json', defaultData);
+  }
+  return dbInstance;
+};
 
 const logError = (msg: string) => {
   try {
@@ -61,6 +68,7 @@ const logError = (msg: string) => {
 
 const savePrice = async (price: number, type: 'REAL' | 'SIMULATED') => {
   try {
+    const db = await getDb();
     db.data.market_data.push({ price, type, timestamp: Date.now() });
     // Keep only last 1000 records to prevent file bloat
     if (db.data.market_data.length > 1000) {
@@ -72,9 +80,10 @@ const savePrice = async (price: number, type: 'REAL' | 'SIMULATED') => {
   }
 };
 
-const getLatestRealPrice = (): number | null => {
+const getLatestRealPrice = async (): Promise<number | null> => {
   try {
-    const realPrices = db.data.market_data.filter((p) => p.type === 'REAL');
+    const db = await getDb();
+    const realPrices = db.data.market_data.filter((p: any) => p.type === 'REAL');
     if (realPrices.length === 0) return null;
     return realPrices[realPrices.length - 1].price;
   } catch (err) {
@@ -639,7 +648,7 @@ export const TradingDashboard = () => {
   // 2. UI/Volatility Update Loop (0.5s)
   useEffect(() => {
     const updateUI = async () => {
-      const lastReal = getLatestRealPrice();
+      const lastReal = await getLatestRealPrice();
 
       if (lastReal) {
         // Add random volatility (+/- 0.05%)
