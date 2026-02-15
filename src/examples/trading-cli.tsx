@@ -142,7 +142,7 @@ const LAYERS = {
   // Structure
   headerBar: '#555555',
   border: '#555555',
-  commandBar: '#333333', // Lighter background
+  commandBar: '#44475a', // Dracula Current Line
 };
 
 const INITIAL_ORDER_BOOK = [
