@@ -1,5 +1,10 @@
 # Agent Instructions
 
+## Git Protocols
+
+**CRITICAL: NEVER commit changes to the repository without explicit user authorization.**
+Always ask for permission before running `git commit`.
+
 ## CI/CD Verification Protocol
 
 Before pushing any changes to the remote repository, you **MUST** simulate the GitHub Actions workflow locally to ensure the build will pass. This prevents breaking the CI pipeline with dependency conflicts or build errors.

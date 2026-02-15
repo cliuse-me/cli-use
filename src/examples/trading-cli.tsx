@@ -1,10 +1,112 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { render, Box, Text, useInput } from 'ink';
 import TextInput from 'ink-text-input';
 import fs from 'node:fs';
 import { exec } from 'node:child_process';
 import os from 'node:os';
 import { fileURLToPath } from 'url';
+import { JSONFilePreset } from 'lowdb/node';
+
+// --- API & Types ---
+
+interface TickerData {
+  lastPrice: string;
+  priceChangePercent: string;
+  highPrice: string;
+  lowPrice: string;
+  volume: string; // Base volume
+  quoteVolume: string; // Quote volume (USDT)
+}
+
+interface OrderBookData {
+  bids: [string, string][];
+  asks: [string, string][];
+}
+
+interface TradeData {
+  id: number;
+  price: string;
+  qty: string;
+  time: number;
+  isBuyerMaker: boolean;
+}
+
+const formatVolume = (vol: string | number) => {
+  const v = typeof vol === 'string' ? parseFloat(vol) : vol;
+  if (v >= 1e9) return (v / 1e9).toFixed(2) + 'B';
+  if (v >= 1e6) return (v / 1e6).toFixed(2) + 'M';
+  if (v >= 1e3) return (v / 1e3).toFixed(2) + 'K';
+  return v.toFixed(2);
+};
+
+// --- Database Setup (Lowdb) ---
+type PriceRecord = { price: number; type: 'REAL' | 'SIMULATED'; timestamp: number };
+type Data = { market_data: PriceRecord[] };
+const defaultData: Data = { market_data: [] };
+
+// Using JSONFilePreset ensures type safety and auto-creation
+// We initialize it inside a function or lazily to avoid top-level await issues in some environments,
+// but for this CLI app, we can initialize it. However, since lowdb is ESM, let's keep it simple.
+// Note: In a real app, you might want to handle the db path more carefully.
+const db = await JSONFilePreset<Data>('trading-db.json', defaultData);
+
+const logError = (msg: string) => {
+  try {
+    fs.appendFileSync('error.log', new Date().toISOString() + ' ' + msg + '\n');
+  } catch (e) {}
+};
+
+const savePrice = async (price: number, type: 'REAL' | 'SIMULATED') => {
+  try {
+    db.data.market_data.push({ price, type, timestamp: Date.now() });
+    // Keep only last 1000 records to prevent file bloat
+    if (db.data.market_data.length > 1000) {
+      db.data.market_data = db.data.market_data.slice(-1000);
+    }
+    await db.write();
+  } catch (err) {
+    logError(`Save error: ${err}`);
+  }
+};
+
+const getLatestRealPrice = (): number | null => {
+  try {
+    const realPrices = db.data.market_data.filter((p) => p.type === 'REAL');
+    if (realPrices.length === 0) return null;
+    return realPrices[realPrices.length - 1].price;
+  } catch (err) {
+    logError(`Get price error: ${err}`);
+    return null;
+  }
+};
+
+const fetchBinanceData = async (): Promise<{
+  ticker: TickerData;
+  depth: OrderBookData;
+  trades: TradeData[];
+} | null> => {
+  try {
+    const [tickerRes, depthRes, tradesRes] = await Promise.all([
+      fetch('https://api.binance.com/api/v3/ticker/24hr?symbol=BTCUSDT'),
+      fetch('https://api.binance.com/api/v3/depth?symbol=BTCUSDT&limit=5'),
+      fetch('https://api.binance.com/api/v3/trades?symbol=BTCUSDT&limit=5'),
+    ]);
+
+    if (!tickerRes.ok || !depthRes.ok || !tradesRes.ok) {
+      logError(`Fetch failed: ${tickerRes.status} ${depthRes.status} ${tradesRes.status}`);
+      return null;
+    }
+
+    const ticker = (await tickerRes.json()) as TickerData;
+    const depth = (await depthRes.json()) as OrderBookData;
+    const trades = (await tradesRes.json()) as TradeData[];
+
+    return { ticker, depth, trades };
+  } catch (err) {
+    logError(`Fetch error: ${err}`);
+    return null;
+  }
+};
 
 // --- Palette Definition ---
 // Using different shades of dark to create "layers"
@@ -71,22 +173,29 @@ const writeTradeLog = (trades: any[]) => {
 
 // --- UI Components ---
 
-// Updated Layer: Uses backgroundColor prop (now supported)
-const Layer = ({ children, height, width, color }: any) => (
+// Updated Layer: Uses borderStyle="single" instead of background
+const Layer = ({ children, height, width, title }: any) => (
   <Box
     flexDirection="column"
     height={height}
     width={width}
     flexGrow={1}
-    borderStyle="round"
+    borderStyle="single"
     borderColor={LAYERS.border}
-    backgroundColor={color}
+    paddingX={1}
   >
+    {title && (
+      <Box marginTop={-1} marginLeft={1} paddingX={1}>
+        <Text bold color={LAYERS.accent}>
+          {title}
+        </Text>
+      </Box>
+    )}
     {children}
   </Box>
 );
 
-// Updated LayerHeader: Uses backgroundColor
+// Updated LayerHeader: (Inline replacement for compatibility or simple text)
 const LayerHeader = ({ title, rightLabel }: { title: string; rightLabel?: string }) => (
   <Box
     flexDirection="row"
@@ -95,8 +204,7 @@ const LayerHeader = ({ title, rightLabel }: { title: string; rightLabel?: string
     paddingY={0}
     borderBottom
     borderStyle="single"
-    borderColor={LAYERS.headerBar}
-    backgroundColor={LAYERS.headerInfo}
+    borderColor={LAYERS.border}
   >
     <Text bold color={LAYERS.accent}>
       {title}
@@ -114,29 +222,27 @@ const HeaderSection = ({
   agentStatus: string;
   tradeStats?: { count: number; vol: number };
 }) => (
-  <Layer color={LAYERS.headerInfo}>
-    <LayerHeader title="HEADER" rightLabel="active" />
-    <Box flexDirection="column" paddingX={1} paddingY={0} marginTop={1} marginBottom={1}>
+  <Layer title="HEADER">
+    <Box flexDirection="column" paddingY={0} marginBottom={0}>
       <Box flexDirection="row" justifyContent="space-between">
         <Text bold color={LAYERS.textMain}>
           [CLI_USE]
         </Text>
-        {/* Agent Status Widget */}
         {agentStatus !== 'idle' && (
           <Box>
-            <Text color={agentStatus === 'EXECUTING' ? LAYERS.yellow : LAYERS.green} bold>
-              [ ● Agent: {agentStatus} ]
-            </Text>
+            <Text
+              color={agentStatus === 'EXECUTING' ? LAYERS.yellow : LAYERS.green}
+              bold
+            >{`[ ● Agent: ${agentStatus} ]`}</Text>
             {tradeStats && tradeStats.count > 0 && (
-              <Text color={LAYERS.textMain}>
-                {' '}
-                Trades: {tradeStats.count} | Vol: {(tradeStats.vol * 100).toFixed(0)}%
-              </Text>
+              <Text
+                color={LAYERS.textMain}
+              >{` Trades: ${tradeStats.count} | Vol: ${(tradeStats.vol * 100).toFixed(0)}%`}</Text>
             )}
           </Box>
         )}
       </Box>
-      <Box flexDirection="row" marginTop={1} gap={2}>
+      <Box flexDirection="row" marginTop={0} gap={2}>
         <Box marginRight={2}>
           <Text color={LAYERS.textDim}>MARKET: </Text>
           <Text color={LAYERS.textMain} bold>
@@ -160,62 +266,162 @@ const HeaderSection = ({
   </Layer>
 );
 
-const PriceOverview = ({ price }: { price: number }) => {
+const InfoBox = ({
+  label,
+  value,
+  color,
+  width = '100%',
+}: {
+  label: string;
+  value: string;
+  color?: string;
+  width?: string | number;
+}) => (
+  <Box
+    borderStyle="single"
+    borderColor={LAYERS.border}
+    flexDirection="row"
+    justifyContent="space-between"
+    paddingX={1}
+    width={width}
+  >
+    <Text color={LAYERS.textDim}>{label}</Text>
+    <Text color={color || LAYERS.textMain} bold>
+      {value}
+    </Text>
+  </Box>
+);
+
+const PriceOverview = ({ data }: { data: TickerData | typeof INITIAL_PRICE_DATA | null }) => {
+  // Normalize data structure
+  const isTicker = (d: any): d is TickerData => d && 'lastPrice' in d;
+
+  // Fallback to initial data if null
+  const safeData = data || INITIAL_PRICE_DATA;
+
+  const price = isTicker(safeData) ? parseFloat(safeData.lastPrice) : (safeData as any).last;
+  const change = isTicker(safeData)
+    ? parseFloat(safeData.priceChangePercent).toFixed(2) + '%'
+    : (safeData as any).change;
+  const high = isTicker(safeData)
+    ? parseFloat(safeData.highPrice).toLocaleString('en-US', { minimumFractionDigits: 2 })
+    : (safeData as any).high;
+  const low = isTicker(safeData)
+    ? parseFloat(safeData.lowPrice).toLocaleString('en-US', { minimumFractionDigits: 2 })
+    : (safeData as any).low;
+  const vol = isTicker(safeData) ? formatVolume(safeData.quoteVolume) : (safeData as any).vol;
+
+  // Mock spread for TickerData (Ask - Bid) if available, else Mock
+  const spread = isTicker(safeData) ? '0.01' : (safeData as any).spread;
+
   const formattedPrice = price.toLocaleString('en-US', {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   });
 
-  // Dynamic data based on price prop
-  const priceData = [
-    { label: 'LAST', value: formattedPrice, color: LAYERS.textMain },
-    { label: '24H%', value: INITIAL_PRICE_DATA.change, color: LAYERS.green },
-    { label: 'HIGH', value: INITIAL_PRICE_DATA.high, color: LAYERS.textMain },
-    { label: 'LOW', value: INITIAL_PRICE_DATA.low, color: LAYERS.textMain },
-    { label: 'VOL', value: INITIAL_PRICE_DATA.vol, color: LAYERS.textMain },
-    { label: 'SPREAD', value: INITIAL_PRICE_DATA.spread, color: LAYERS.textMain },
-  ];
+  return (
+    <Layer title="PRICE OVERVIEW">
+      <Box flexDirection="column" gap={0}>
+        {/* Row 1 */}
+        <Box flexDirection="row" gap={1}>
+          <InfoBox label="LAST" value={formattedPrice} color={LAYERS.textMain} width="50%" />
+          <InfoBox
+            label="24H%"
+            value={change}
+            color={change.startsWith('-') ? LAYERS.red : LAYERS.green}
+            width="50%"
+          />
+        </Box>
 
-  const pairs = [];
-  for (let i = 0; i < priceData.length; i += 2) {
-    pairs.push([priceData[i], priceData[i + 1]]);
-  }
+        <Box height={1} />
+
+        {/* Row 2 */}
+        <Box flexDirection="row" gap={1}>
+          <InfoBox label="HIGH" value={high} width="50%" />
+          <InfoBox label="LOW" value={low} width="50%" />
+        </Box>
+
+        <Box height={1} />
+
+        {/* Row 3 */}
+        <Box flexDirection="row" gap={1}>
+          <InfoBox label="VOL" value={vol} width="50%" />
+          <InfoBox label="SPREAD" value={spread} width="50%" />
+        </Box>
+      </Box>
+    </Layer>
+  );
+};
+
+const OrderBook = ({ depth }: { depth?: OrderBookData | null }) => {
+  const bids = depth
+    ? depth.bids.slice(0, 3).map(([price, size]) => ({
+        bid: parseFloat(price).toLocaleString('en-US', {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2,
+        }),
+        bSize: parseFloat(size).toFixed(2),
+      }))
+    : INITIAL_ORDER_BOOK.map((d) => ({ bid: d.bid, bSize: d.bSize }));
+
+  const asks = depth
+    ? depth.asks.slice(0, 3).map(([price, size]) => ({
+        ask: parseFloat(price).toLocaleString('en-US', {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2,
+        }),
+        aSize: parseFloat(size).toFixed(2),
+      }))
+    : INITIAL_ORDER_BOOK.map((d) => ({ ask: d.ask, aSize: d.aSize }));
+
+  const rows = bids.map((bid, i) => ({ ...bid, ...asks[i] }));
 
   return (
-    <Layer color={LAYERS.priceTable}>
-      <LayerHeader title="PRICE OVERVIEW" rightLabel="table" />
-      <Box flexDirection="column" paddingX={1}>
-        {pairs.map((pair, rowIndex) => (
-          <Box
-            key={rowIndex}
-            flexDirection="row"
-            marginBottom={0}
-            borderBottom={rowIndex < pairs.length - 1}
-            borderStyle="single"
-            borderColor={LAYERS.border}
-          >
-            {pair.map((item, colIndex) =>
-              item ? (
-                <Box
-                  key={colIndex}
-                  width="50%"
-                  flexDirection="row"
-                  justifyContent="space-between"
-                  paddingRight={colIndex === 0 ? 1 : 0}
-                  paddingLeft={colIndex === 1 ? 1 : 0}
-                  borderRight={colIndex === 0}
-                  borderStyle="single"
-                  borderColor={LAYERS.border}
-                >
-                  <Text color={LAYERS.textSub} bold>
-                    {item.label}
-                  </Text>
-                  <Text color={item.color} bold>
-                    {item.value}
-                  </Text>
-                </Box>
-              ) : null
-            )}
+    <Layer>
+      <LayerHeader title="ORDER BOOK" rightLabel="depth" />
+      <Box
+        flexDirection="row"
+        paddingX={1}
+        borderBottom
+        borderStyle="single"
+        borderColor={LAYERS.border}
+      >
+        <Box width="25%">
+          <Text color={LAYERS.textSub} bold>
+            BID
+          </Text>
+        </Box>
+        <Box width="25%" alignItems="flex-end">
+          <Text color={LAYERS.textSub} bold>
+            SIZE
+          </Text>
+        </Box>
+        <Box width="25%" paddingLeft={1}>
+          <Text color={LAYERS.textSub} bold>
+            ASK
+          </Text>
+        </Box>
+        <Box width="25%" alignItems="flex-end">
+          <Text color={LAYERS.textSub} bold>
+            SIZE
+          </Text>
+        </Box>
+      </Box>
+      <Box flexDirection="column" paddingX={0}>
+        {rows.map((row, i) => (
+          <Box key={i} flexDirection="row">
+            <Box width="25%">
+              <Text color={LAYERS.green}>{row.bid}</Text>
+            </Box>
+            <Box width="25%" alignItems="flex-end">
+              <Text color={LAYERS.textMain}>{row.bSize}</Text>
+            </Box>
+            <Box width="25%" paddingLeft={1}>
+              <Text color={LAYERS.red}>{row.ask}</Text>
+            </Box>
+            <Box width="25%" alignItems="flex-end">
+              <Text color={LAYERS.textMain}>{row.aSize}</Text>
+            </Box>
           </Box>
         ))}
       </Box>
@@ -223,61 +429,66 @@ const PriceOverview = ({ price }: { price: number }) => {
   );
 };
 
-const OrderBook = () => (
-  <Layer color={LAYERS.orderBook}>
-    <LayerHeader title="ORDER BOOK" rightLabel="depth" />
-
-    {/* Header Row */}
-    <Box
-      flexDirection="row"
-      paddingX={1}
-      borderBottom
-      borderStyle="single"
-      borderColor={LAYERS.border}
-    >
-      <Box width="25%">
-        <Text color={LAYERS.textSub} bold>
-          BID
-        </Text>
-      </Box>
-      <Box width="25%" alignItems="flex-end">
-        <Text color={LAYERS.textSub} bold>
-          SIZE
-        </Text>
-      </Box>
-      <Box width="25%" paddingLeft={1}>
-        <Text color={LAYERS.textSub} bold>
-          ASK
-        </Text>
-      </Box>
-      <Box width="25%" alignItems="flex-end">
-        <Text color={LAYERS.textSub} bold>
-          SIZE
-        </Text>
-      </Box>
-    </Box>
-
-    {/* Data Rows */}
-    <Box flexDirection="column" paddingX={1}>
-      {INITIAL_ORDER_BOOK.map((row, i) => (
-        <Box key={i} flexDirection="row">
-          <Box width="25%">
-            <Text color={LAYERS.green}>{row.bid}</Text>
-          </Box>
-          <Box width="25%" alignItems="flex-end">
-            <Text color={LAYERS.textMain}>{row.bSize}</Text>
-          </Box>
-          <Box width="25%" paddingLeft={1}>
-            <Text color={LAYERS.red}>{row.ask}</Text>
-          </Box>
-          <Box width="25%" alignItems="flex-end">
-            <Text color={LAYERS.textMain}>{row.aSize}</Text>
-          </Box>
+const MarketTrades = ({ trades }: { trades?: TradeData[] | null }) => {
+  return (
+    <Layer>
+      <LayerHeader title="MARKET TRADES" rightLabel="recent" />
+      <Box
+        flexDirection="row"
+        paddingX={1}
+        borderBottom
+        borderStyle="single"
+        borderColor={LAYERS.border}
+      >
+        <Box width="30%">
+          <Text color={LAYERS.textSub} bold>
+            TIME
+          </Text>
         </Box>
-      ))}
-    </Box>
-  </Layer>
-);
+        <Box width="40%" alignItems="flex-end">
+          <Text color={LAYERS.textSub} bold>
+            PRICE
+          </Text>
+        </Box>
+        <Box width="30%" alignItems="flex-end">
+          <Text color={LAYERS.textSub} bold>
+            QTY
+          </Text>
+        </Box>
+      </Box>
+      <Box flexDirection="column" paddingX={0}>
+        {trades && trades.length > 0 ? (
+          trades.slice(0, 5).map((t, i) => (
+            <Box key={i} flexDirection="row">
+              <Box width="30%">
+                <Text color={LAYERS.textDim}>
+                  {new Date(t.time).toLocaleTimeString('en-US', {
+                    hour12: false,
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit',
+                  })}
+                </Text>
+              </Box>
+              <Box width="40%" alignItems="flex-end">
+                <Text color={t.isBuyerMaker ? LAYERS.red : LAYERS.green}>
+                  {parseFloat(t.price).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                </Text>
+              </Box>
+              <Box width="30%" alignItems="flex-end">
+                <Text color={LAYERS.textMain}>{parseFloat(t.qty).toFixed(4)}</Text>
+              </Box>
+            </Box>
+          ))
+        ) : (
+          <Box>
+            <Text color={LAYERS.textDim}>Waiting for trades...</Text>
+          </Box>
+        )}
+      </Box>
+    </Layer>
+  );
+};
 
 // --- Main App ---
 
@@ -295,6 +506,12 @@ const CommandBar = ({
     setCommand('');
   };
 
+  const commandColor = command.startsWith('/agents')
+    ? LAYERS.yellow
+    : command.startsWith('/ai')
+      ? LAYERS.cyan
+      : undefined;
+
   return (
     <Box
       flexDirection="row"
@@ -306,12 +523,14 @@ const CommandBar = ({
       width="100%"
     >
       <Text color={LAYERS.accent}>➜ </Text>
-      <TextInput
-        value={command}
-        onChange={setCommand}
-        onSubmit={handleSubmit}
-        placeholder="Type a command (e.g. /agent run strategy)"
-      />
+      <Text color={commandColor}>
+        <TextInput
+          value={command}
+          onChange={setCommand}
+          onSubmit={handleSubmit}
+          placeholder="Type a command (e.g. /agent run strategy)"
+        />
+      </Text>
       <Box flexGrow={1} />
       <Text color={status === 'idle' ? LAYERS.textDim : LAYERS.green}>
         {status === 'idle' ? 'READY' : status}
@@ -322,7 +541,9 @@ const CommandBar = ({
 
 export const TradingApp = () => {
   const [agentStatus, setAgentStatus] = useState('idle'); // idle, MONITORING, EXECUTING
-  const [currentPrice, setCurrentPrice] = useState(INITIAL_PRICE_DATA.last);
+  const [marketData, setMarketData] = useState<TickerData | null>(null);
+  const [orderBook, setOrderBook] = useState<OrderBookData | null>(null);
+  const [trades, setTrades] = useState<TradeData[] | null>(null);
   const [tradeStats, setTradeStats] = useState({ count: 0, vol: 0 });
 
   useInput((input, key) => {
@@ -331,15 +552,80 @@ export const TradingApp = () => {
     }
   });
 
+  // --- Data Fetching Logic ---
+
+  // 1. API Polling Loop (1.5s)
+  useEffect(() => {
+    const pollAPI = async () => {
+      const data = await fetchBinanceData();
+      if (data) {
+        setOrderBook(data.depth);
+        setTrades(data.trades);
+        // Save REAL price to DB for volatility calculation
+        await savePrice(parseFloat(data.ticker.lastPrice), 'REAL');
+        // Also ensure marketData is set at least once so we have base data
+        setMarketData((prev) => (prev ? prev : data.ticker));
+      }
+    };
+
+    // Initial fetch
+    pollAPI();
+
+    const interval = setInterval(pollAPI, 1500);
+    return () => clearInterval(interval);
+  }, []);
+
+  // 2. UI/Volatility Update Loop (0.5s)
+  useEffect(() => {
+    const updateUI = async () => {
+      const lastReal = getLatestRealPrice();
+
+      if (lastReal) {
+        // Add random volatility (+/- 0.05%)
+        const volatility = (Math.random() - 0.5) * 0.001;
+        const simulatedPrice = lastReal * (1 + volatility);
+
+        // Save simulated price (optional, mostly for history logging if needed)
+        await savePrice(simulatedPrice, 'SIMULATED');
+
+        // Update Market Data State with new price, preserving other fields if available
+        setMarketData((prev) => {
+          if (prev) {
+            return {
+              ...prev,
+              lastPrice: simulatedPrice.toString(),
+            };
+          }
+
+          return {
+            lastPrice: simulatedPrice.toString(),
+            priceChangePercent: '0.00',
+            highPrice: (simulatedPrice * 1.02).toString(),
+            lowPrice: (simulatedPrice * 0.98).toString(),
+            volume: '1000',
+            quoteVolume: '100000000',
+          };
+        });
+      }
+    };
+
+    const interval = setInterval(updateUI, 500);
+    return () => clearInterval(interval);
+  }, []);
+
   const runAgentStrategy = () => {
     setAgentStatus('MONITORING');
     setTradeStats({ count: 0, vol: 0 });
     const trades: any[] = [];
     let count = 0;
 
+    const currentPrice = marketData ? parseFloat(marketData.lastPrice) : INITIAL_PRICE_DATA.last;
+
     // T+2s: Simulate Price Drop
     setTimeout(() => {
-      setCurrentPrice(94129.5); // Drop price
+      // For simulation, we might want to force a drop in the displayed price
+      // But our volatility loop will overwrite it.
+      // For this demo, let's just let the agent "react" to the current price.
     }, 2000);
 
     // T+3s: Execute
@@ -352,7 +638,7 @@ export const TradingApp = () => {
           timestamp: new Date().toISOString(),
           action: 'BUY',
           asset: 'BTC',
-          price: 94129.5 - count * 0.5,
+          price: currentPrice - count * 0.5,
           amount: 0.05,
           status: 'FILLED',
         };
@@ -371,7 +657,6 @@ export const TradingApp = () => {
 
           setTimeout(() => {
             setAgentStatus('idle');
-            setCurrentPrice(INITIAL_PRICE_DATA.last);
           }, 2000);
         }
       }, 100);
@@ -390,8 +675,7 @@ export const TradingApp = () => {
       padding={1}
       borderStyle="round"
       borderColor={LAYERS.border}
-      backgroundColor="#1a1a1a" // Slightly lighter than pure black
-      width={100} // Ensuring a fixed width for the "entire cli" feel, or "100%"
+      width={100}
     >
       {/* Top Bar */}
       <Box flexDirection="row" justifyContent="space-between" paddingX={1} marginBottom={1}>
@@ -402,20 +686,28 @@ export const TradingApp = () => {
       </Box>
 
       {/* Layout Grid */}
-      <Box flexDirection="column" gap={1}>
+      <Box flexDirection="column" gap={0}>
         <HeaderSection agentStatus={agentStatus} tradeStats={tradeStats} />
 
-        <Box flexDirection="row" gap={1}>
-          <Box width="50%">
-            <PriceOverview price={currentPrice} />
+        {/* Top Section: Price & OrderBook */}
+        <Box flexDirection="row" gap={1} marginTop={1}>
+          <Box width="45%">
+            <PriceOverview data={marketData} />
           </Box>
-          <Box width="50%">
-            <OrderBook />
+          <Box width="55%">
+            <OrderBook depth={orderBook} />
           </Box>
         </Box>
 
+        {/* Bottom Section: Market Trades */}
+        <Box marginTop={1}>
+          <MarketTrades trades={trades} />
+        </Box>
+
         {/* New Command Bar */}
-        <CommandBar onCommand={handleCommand} status={agentStatus} />
+        <Box marginTop={1}>
+          <CommandBar onCommand={handleCommand} status={agentStatus} />
+        </Box>
       </Box>
     </Box>
   );
