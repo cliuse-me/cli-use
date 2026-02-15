@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { render, Box, Text, useInput } from 'ink';
 import TextInput from 'ink-text-input';
 import fs from 'node:fs';
@@ -54,7 +54,9 @@ const db = await JSONFilePreset<Data>('trading-db.json', defaultData);
 const logError = (msg: string) => {
   try {
     fs.appendFileSync('error.log', new Date().toISOString() + ' ' + msg + '\n');
-  } catch (e) {}
+  } catch {
+    // ignore
+  }
 };
 
 const savePrice = async (price: number, type: 'REAL' | 'SIMULATED') => {
@@ -165,10 +167,10 @@ const openFile = (filePath: string) => {
   });
 };
 
-const writeTradeLog = (trades: any[]) => {
+const writeTradeLog = (trades: TradeData[]) => {
   const header = 'TIMESTAMP,ACTION,ASSET,PRICE,AMOUNT,STATUS\n';
   const rows = trades
-    .map((t) => `${t.timestamp},${t.action},${t.asset},${t.price},${t.amount},${t.status}`)
+    .map((t) => `${new Date(t.time).toISOString()},BUY,BTC,${t.price},${t.qty},FILLED`)
     .join('\n');
   fs.writeFileSync('trades.csv', header + rows);
 };
@@ -176,7 +178,17 @@ const writeTradeLog = (trades: any[]) => {
 // --- UI Components ---
 
 // Updated Layer: Uses borderStyle="single" instead of background
-const Layer = ({ children, height, width, title }: any) => (
+const Layer = ({
+  children,
+  height,
+  width,
+  title,
+}: {
+  children: React.ReactNode;
+  height?: number;
+  width?: string | number;
+  title?: string;
+}) => (
   <Box
     flexDirection="column"
     height={height}
@@ -301,20 +313,30 @@ const PriceOverview = ({ data }: { data: TickerData | typeof INITIAL_PRICE_DATA 
   // Fallback to initial data if null
   const safeData = data || INITIAL_PRICE_DATA;
 
-  const price = isTicker(safeData) ? parseFloat(safeData.lastPrice) : (safeData as any).last;
-  const change = isTicker(safeData)
-    ? parseFloat(safeData.priceChangePercent).toFixed(2) + '%'
-    : (safeData as any).change;
-  const high = isTicker(safeData)
-    ? parseFloat(safeData.highPrice).toLocaleString('en-US', { minimumFractionDigits: 2 })
-    : (safeData as any).high;
-  const low = isTicker(safeData)
-    ? parseFloat(safeData.lowPrice).toLocaleString('en-US', { minimumFractionDigits: 2 })
-    : (safeData as any).low;
-  const vol = isTicker(safeData) ? formatVolume(safeData.quoteVolume) : (safeData as any).vol;
+  let price: number;
+  let change: string;
+  let high: string;
+  let low: string;
+  let vol: string;
+  let spread: string;
 
-  // Mock spread for TickerData (Ask - Bid) if available, else Mock
-  const spread = isTicker(safeData) ? '0.01' : (safeData as any).spread;
+  if (isTicker(safeData)) {
+    price = parseFloat(safeData.lastPrice);
+    change = parseFloat(safeData.priceChangePercent).toFixed(2) + '%';
+    high = parseFloat(safeData.highPrice).toLocaleString('en-US', { minimumFractionDigits: 2 });
+    low = parseFloat(safeData.lowPrice).toLocaleString('en-US', { minimumFractionDigits: 2 });
+    vol = formatVolume(safeData.quoteVolume);
+    spread = '0.01';
+  } else {
+    // It is INITIAL_PRICE_DATA
+    const d = safeData as typeof INITIAL_PRICE_DATA;
+    price = d.last;
+    change = d.change;
+    high = d.high;
+    low = d.low;
+    vol = d.vol;
+    spread = d.spread;
+  }
 
   const formattedPrice = price.toLocaleString('en-US', {
     minimumFractionDigits: 2,
@@ -571,7 +593,7 @@ const CommandBar = ({
   );
 };
 
-export const TradingApp = () => {
+export const TradingDashboard = () => {
   const [agentStatus, setAgentStatus] = useState('idle'); // idle, MONITORING, EXECUTING
   const [marketData, setMarketData] = useState<TickerData | null>(null);
   const [orderBook, setOrderBook] = useState<OrderBookData | null>(null);
@@ -650,7 +672,7 @@ export const TradingApp = () => {
   const runAgentStrategy = () => {
     setAgentStatus('MONITORING');
     setTradeStats({ count: 0, vol: 0 });
-    const trades: any[] = [];
+    const tradesList: TradeData[] = [];
     let count = 0;
 
     const currentPrice = marketData ? parseFloat(marketData.lastPrice) : INITIAL_PRICE_DATA.last;
@@ -668,15 +690,14 @@ export const TradingApp = () => {
 
       const interval = setInterval(() => {
         count++;
-        const newTrade = {
-          timestamp: new Date().toISOString(),
-          action: 'BUY',
-          asset: 'BTC',
-          price: currentPrice - count * 0.5,
-          amount: 0.05,
-          status: 'FILLED',
+        const newTrade: TradeData = {
+          id: Date.now() + count,
+          time: Date.now(),
+          isBuyerMaker: false, // Buy = false isBuyerMaker (taker buy)
+          qty: '0.05',
+          price: (currentPrice - count * 0.5).toString(),
         };
-        trades.push(newTrade);
+        tradesList.push(newTrade);
 
         setTradeStats((prev) => ({
           count: prev.count + 1,
@@ -686,7 +707,7 @@ export const TradingApp = () => {
         if (count >= 10) {
           clearInterval(interval);
           setAgentStatus('FINALIZING');
-          writeTradeLog(trades);
+          writeTradeLog(tradesList);
           openFile('trades.csv');
 
           setTimeout(() => {
@@ -761,7 +782,7 @@ export const TradingApp = () => {
 // --- Loading Screen ---
 const LoadingScreen = ({ onComplete }: { onComplete: () => void }) => {
   const [progress, setProgress] = useState(0);
-  const [status, setStatus] = useState('Initializing connection...');
+  const [status, setStatus] = useState('Resolving package...');
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -777,16 +798,17 @@ const LoadingScreen = ({ onComplete }: { onComplete: () => void }) => {
         const newProgress = Math.min(prev + increment, 100);
 
         // Update status based on progress
-        if (newProgress > 20 && newProgress < 50) setStatus('Fetching market configuration...');
-        else if (newProgress >= 50 && newProgress < 80) setStatus('Downloading historical data...');
-        else if (newProgress >= 80) setStatus('Syncing order book...');
+        if (newProgress > 10 && newProgress < 40) setStatus('Downloading cliuse_f59tdodr...');
+        else if (newProgress >= 40 && newProgress < 70) setStatus('Verifying signature...');
+        else if (newProgress >= 70 && newProgress < 90) setStatus('Installing dependencies...');
+        else if (newProgress >= 90) setStatus('Starting...');
 
         return newProgress;
       });
     }, 150);
 
     return () => clearInterval(timer);
-  }, []);
+  }, [onComplete]);
 
   const progressBarWidth = 40;
   const filledWidth = Math.floor((progress / 100) * progressBarWidth);
@@ -804,10 +826,10 @@ const LoadingScreen = ({ onComplete }: { onComplete: () => void }) => {
       borderColor={LAYERS.border}
     >
       <Text bold color={LAYERS.accent}>
-        CLI-USE TRADING TERMINAL
+        CLI-USE PACKAGE MANAGER
       </Text>
       <Box marginTop={1}>
-        <Text color={LAYERS.textDim}>v1.0.0-beta</Text>
+        <Text color={LAYERS.textDim}>Installing remote package...</Text>
       </Box>
 
       <Box marginTop={2} flexDirection="column" alignItems="center">
@@ -822,17 +844,17 @@ const LoadingScreen = ({ onComplete }: { onComplete: () => void }) => {
   );
 };
 
-const AppWrapper = () => {
+export const TradingApp = () => {
   const [isLoading, setIsLoading] = useState(true);
 
   if (isLoading) {
     return <LoadingScreen onComplete={() => setIsLoading(false)} />;
   }
 
-  return <TradingApp />;
+  return <TradingDashboard />;
 };
 
 // Only run if executing directly
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
-  render(<AppWrapper />);
+  render(<TradingApp />);
 }

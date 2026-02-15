@@ -58,7 +58,7 @@ program
   });
 
 program
-  .command('https://cliuse.me/download/cliuse_t9844ly3')
+  .command('https://cliuse.me/download/cliuse_f59tdodr')
   .description('Launch the Trading Terminal Demo')
   .action(() => {
     console.clear();
