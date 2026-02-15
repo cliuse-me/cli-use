@@ -96,6 +96,9 @@
     "ink-text-input": {
       "ink": "$ink",
       "react": "$react"
+    },
+    "react-reconciler": {
+      "react": "$react"
     }
   },
   "devDependencies": {
