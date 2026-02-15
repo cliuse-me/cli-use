@@ -40,8 +40,8 @@ const PRICE_DATA = [
 
 // --- UI Components ---
 
-// Updated Layer: Removed 'color' prop since backgroundColor isn't supported on Box
-const Layer = ({ children, height, width }: any) => (
+// Updated Layer: Uses backgroundColor prop (now supported)
+const Layer = ({ children, height, width, color }: any) => (
   <Box
     flexDirection="column"
     height={height}
@@ -49,12 +49,13 @@ const Layer = ({ children, height, width }: any) => (
     flexGrow={1}
     borderStyle="round"
     borderColor={LAYERS.border}
+    backgroundColor={color}
   >
     {children}
   </Box>
 );
 
-// Updated LayerHeader: Removed backgroundColor
+// Updated LayerHeader: Uses backgroundColor
 const LayerHeader = ({ title, rightLabel }: { title: string; rightLabel?: string }) => (
   <Box
     flexDirection="row"
@@ -64,6 +65,7 @@ const LayerHeader = ({ title, rightLabel }: { title: string; rightLabel?: string
     borderBottom
     borderStyle="single"
     borderColor={LAYERS.headerBar}
+    backgroundColor={LAYERS.headerInfo}
   >
     <Text bold color={LAYERS.accent}>
       {title}
@@ -75,7 +77,7 @@ const LayerHeader = ({ title, rightLabel }: { title: string; rightLabel?: string
 // --- Sections ---
 
 const HeaderSection = () => (
-  <Layer>
+  <Layer color={LAYERS.headerInfo}>
     <LayerHeader title="HEADER" rightLabel="active" />
     <Box flexDirection="column" paddingX={1} paddingY={0} marginTop={1} marginBottom={1}>
       <Text bold color={LAYERS.textMain}>
@@ -145,7 +147,7 @@ const CandleChart = () => {
   const rightHeights = [4, 2, 5, 3, 6, 5, 4, 6];
 
   return (
-    <Layer>
+    <Layer color={LAYERS.chart}>
       <LayerHeader title="CANDLE CHART" rightLabel="candles" />
       <Box flexDirection="row" height={12} paddingY={1} justifyContent="center" alignItems="center">
         {/* Bearish Side */}
@@ -192,7 +194,7 @@ const PriceOverview = () => {
   }
 
   return (
-    <Layer>
+    <Layer color={LAYERS.priceTable}>
       <LayerHeader title="PRICE OVERVIEW" rightLabel="table" />
       <Box flexDirection="column" paddingX={1}>
         {pairs.map((pair, rowIndex) => (
@@ -234,7 +236,7 @@ const PriceOverview = () => {
 };
 
 const OrderBook = () => (
-  <Layer>
+  <Layer color={LAYERS.orderBook}>
     <LayerHeader title="ORDER BOOK" rightLabel="depth" />
 
     {/* Header Row */}
@@ -299,7 +301,14 @@ const App = () => {
   });
 
   return (
-    <Box flexDirection="column" padding={1}>
+    <Box
+      flexDirection="column"
+      padding={1}
+      borderStyle="round"
+      borderColor={LAYERS.border}
+      backgroundColor="#1a1a1a" // Slightly lighter than pure black
+      width={100} // Ensuring a fixed width for the "entire cli" feel, or "100%"
+    >
       {/* Top Bar */}
       <Box flexDirection="row" justifyContent="space-between" paddingX={1} marginBottom={1}>
         <Text bold color={LAYERS.textMain}>
