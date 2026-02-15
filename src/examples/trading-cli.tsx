@@ -123,6 +123,7 @@ const LAYERS = {
   accent: '#bd93f9',
   cyan: '#8be9fd',
   yellow: '#f1fa8c',
+  orange: '#ffb86c',
   textMain: '#ffffff',
   textSub: '#d0d0d0',
   textDim: '#707070',
@@ -538,7 +539,9 @@ const CommandBar = ({
     ? LAYERS.yellow
     : command.startsWith('/ai')
       ? LAYERS.cyan
-      : undefined;
+      : command.startsWith('/predict')
+        ? LAYERS.orange
+        : undefined;
 
   return (
     <Box
