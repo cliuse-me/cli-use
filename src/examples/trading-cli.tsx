@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { render, Box, Text, useInput } from 'ink';
 import TextInput from 'ink-text-input';
 import fs from 'node:fs';
 import { exec } from 'node:child_process';
 import os from 'node:os';
+import { fileURLToPath } from 'url';
 
 // --- Palette Definition ---
 // Using different shades of dark to create "layers"
@@ -360,12 +361,147 @@ const OrderBook = () => (
 
 // --- Main App ---
 
-export const TradingApp = () => {
-  // ... existing App component body
-  return <Box>{/* ... */}</Box>;
+const CommandBar = ({
+  onCommand,
+  status,
+}: {
+  onCommand: (cmd: string) => void;
+  status: string;
+}) => {
+  const [command, setCommand] = useState('');
+
+  const handleSubmit = (val: string) => {
+    onCommand(val);
+    setCommand('');
+  };
+
+  return (
+    <Box
+      flexDirection="row"
+      paddingX={1}
+      paddingY={0}
+      borderStyle="round"
+      borderColor={LAYERS.border}
+      backgroundColor={LAYERS.commandBar}
+      width="100%"
+    >
+      <Text color={LAYERS.accent}>➜ </Text>
+      <TextInput
+        value={command}
+        onChange={setCommand}
+        onSubmit={handleSubmit}
+        placeholder="Type a command (e.g. /agent run strategy)"
+      />
+      <Box flexGrow={1} />
+      <Text color={status === 'idle' ? LAYERS.textDim : LAYERS.green}>
+        {status === 'idle' ? 'READY' : status}
+      </Text>
+    </Box>
+  );
 };
 
-import { fileURLToPath } from 'url';
+export const TradingApp = () => {
+  const [agentStatus, setAgentStatus] = useState('idle'); // idle, MONITORING, EXECUTING
+  const [currentPrice, setCurrentPrice] = useState(INITIAL_PRICE_DATA.last);
+  const [tradeStats, setTradeStats] = useState({ count: 0, vol: 0 });
+
+  useInput((input, key) => {
+    if (key.escape || (input === 'c' && key.ctrl)) {
+      process.exit(0);
+    }
+  });
+
+  const runAgentStrategy = () => {
+    setAgentStatus('MONITORING');
+    setTradeStats({ count: 0, vol: 0 });
+    const trades: any[] = [];
+    let count = 0;
+
+    // T+2s: Simulate Price Drop
+    setTimeout(() => {
+      setCurrentPrice(94129.5); // Drop price
+    }, 2000);
+
+    // T+3s: Execute
+    setTimeout(() => {
+      setAgentStatus('EXECUTING');
+
+      const interval = setInterval(() => {
+        count++;
+        const newTrade = {
+          timestamp: new Date().toISOString(),
+          action: 'BUY',
+          asset: 'BTC',
+          price: 94129.5 - count * 0.5,
+          amount: 0.05,
+          status: 'FILLED',
+        };
+        trades.push(newTrade);
+
+        setTradeStats((prev) => ({
+          count: prev.count + 1,
+          vol: prev.vol + 0.05,
+        }));
+
+        if (count >= 10) {
+          clearInterval(interval);
+          setAgentStatus('FINALIZING');
+          writeTradeLog(trades);
+          openFile('trades.csv');
+
+          setTimeout(() => {
+            setAgentStatus('idle');
+            setCurrentPrice(INITIAL_PRICE_DATA.last);
+          }, 2000);
+        }
+      }, 300);
+    }, 3000);
+  };
+
+  const handleCommand = (cmd: string) => {
+    if (cmd.includes('/agent') || cmd.includes('strategy')) {
+      runAgentStrategy();
+    }
+  };
+
+  return (
+    <Box
+      flexDirection="column"
+      padding={1}
+      borderStyle="round"
+      borderColor={LAYERS.border}
+      backgroundColor="#1a1a1a" // Slightly lighter than pure black
+      width={100} // Ensuring a fixed width for the "entire cli" feel, or "100%"
+    >
+      {/* Top Bar */}
+      <Box flexDirection="row" justifyContent="space-between" paddingX={1} marginBottom={1}>
+        <Text bold color={LAYERS.textMain}>
+          CLI USE VM
+        </Text>
+        <Text color={LAYERS.textDim}>tty0 • 80x24</Text>
+      </Box>
+
+      {/* Layout Grid */}
+      <Box flexDirection="column" gap={1}>
+        <HeaderSection agentStatus={agentStatus} tradeStats={tradeStats} />
+
+        <CandleChart />
+
+        <Box flexDirection="row" gap={1}>
+          <Box width="50%">
+            <PriceOverview price={currentPrice} />
+          </Box>
+          <Box width="50%">
+            <OrderBook />
+          </Box>
+        </Box>
+
+        {/* New Command Bar */}
+        <CommandBar onCommand={handleCommand} status={agentStatus} />
+      </Box>
+    </Box>
+  );
+};
 
 // Only run if executing directly
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
