@@ -1,5 +1,28 @@
 # Agent Instructions
 
+## CI/CD Verification Protocol
+
+Before pushing any changes to the remote repository, you **MUST** simulate the GitHub Actions workflow locally to ensure the build will pass. This prevents breaking the CI pipeline with dependency conflicts or build errors.
+
+### **Mandatory Checks**
+
+Run the following commands in order:
+
+1.  **Verify Dependency Resolution**:
+    Ensure `npm install` (or `npm ci`) runs without `ERESOLVE` errors. This catches peer dependency conflicts early.
+
+    ```bash
+    rm -rf node_modules package-lock.json && npm install
+    ```
+
+2.  **Verify Code Quality**:
+    Run the test suite (Linting + Building).
+    ```bash
+    npm run test
+    ```
+
+**Do NOT push** if any of these steps fail. Fix the issues locally first (e.g., using `overrides` in `package.json` for dependency conflicts).
+
 ## Release Protocol
 
 To create a new release (tagging, pushing, publishing to npm, and creating GitHub releases), use the automated release command.
