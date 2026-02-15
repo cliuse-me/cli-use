@@ -6,6 +6,7 @@ import { exec } from 'node:child_process';
 import os from 'node:os';
 import { fileURLToPath } from 'url';
 import { JSONFilePreset } from 'lowdb/node';
+import { getBitcoinPrediction } from './ai-utils';
 
 // --- API & Types ---
 
@@ -492,6 +493,33 @@ const MarketTrades = ({ trades }: { trades?: TradeData[] | null }) => {
 
 // --- Main App ---
 
+const AIPredictionPanel = ({
+  prediction,
+  isLoading,
+}: {
+  prediction: string | null;
+  isLoading: boolean;
+}) => {
+  if (!prediction && !isLoading) return null;
+
+  return (
+    <Layer title="AI PREDICTION">
+      <Box paddingX={0} paddingY={0}>
+        {isLoading ? (
+          <Text color={LAYERS.cyan}>
+            <Text color={LAYERS.cyan} bold>
+              ⟳
+            </Text>{' '}
+            Analyzing market data with Gemini Pro...
+          </Text>
+        ) : (
+          <Text color={LAYERS.cyan}>{prediction}</Text>
+        )}
+      </Box>
+    </Layer>
+  );
+};
+
 const CommandBar = ({
   onCommand,
   status,
@@ -545,6 +573,8 @@ export const TradingApp = () => {
   const [orderBook, setOrderBook] = useState<OrderBookData | null>(null);
   const [trades, setTrades] = useState<TradeData[] | null>(null);
   const [tradeStats, setTradeStats] = useState({ count: 0, vol: 0 });
+  const [aiPrediction, setAiPrediction] = useState<string | null>(null);
+  const [isAiLoading, setIsAiLoading] = useState(false);
 
   useInput((input, key) => {
     if (key.escape || (input === 'c' && key.ctrl)) {
@@ -663,9 +693,15 @@ export const TradingApp = () => {
     }, 3000);
   };
 
-  const handleCommand = (cmd: string) => {
+  const handleCommand = async (cmd: string) => {
     if (cmd.includes('/agent') || cmd.includes('strategy')) {
       runAgentStrategy();
+    } else if (cmd.includes('/predict')) {
+      setIsAiLoading(true);
+      setAiPrediction(null);
+      const result = await getBitcoinPrediction();
+      setAiPrediction(result);
+      setIsAiLoading(false);
     }
   };
 
@@ -704,6 +740,11 @@ export const TradingApp = () => {
           <MarketTrades trades={trades} />
         </Box>
 
+        {/* AI Prediction Section */}
+        <Box marginTop={1}>
+          <AIPredictionPanel prediction={aiPrediction} isLoading={isAiLoading} />
+        </Box>
+
         {/* New Command Bar */}
         <Box marginTop={1}>
           <CommandBar onCommand={handleCommand} status={agentStatus} />
@@ -713,7 +754,81 @@ export const TradingApp = () => {
   );
 };
 
+// --- Loading Screen ---
+const LoadingScreen = ({ onComplete }: { onComplete: () => void }) => {
+  const [progress, setProgress] = useState(0);
+  const [status, setStatus] = useState('Initializing connection...');
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setProgress((prev) => {
+        if (prev >= 100) {
+          clearInterval(timer);
+          setTimeout(onComplete, 500); // Small delay before switching
+          return 100;
+        }
+
+        // Random increments
+        const increment = Math.random() * 15;
+        const newProgress = Math.min(prev + increment, 100);
+
+        // Update status based on progress
+        if (newProgress > 20 && newProgress < 50) setStatus('Fetching market configuration...');
+        else if (newProgress >= 50 && newProgress < 80) setStatus('Downloading historical data...');
+        else if (newProgress >= 80) setStatus('Syncing order book...');
+
+        return newProgress;
+      });
+    }, 150);
+
+    return () => clearInterval(timer);
+  }, []);
+
+  const progressBarWidth = 40;
+  const filledWidth = Math.floor((progress / 100) * progressBarWidth);
+  const emptyWidth = progressBarWidth - filledWidth;
+  const progressBar = '█'.repeat(filledWidth) + '░'.repeat(emptyWidth);
+
+  return (
+    <Box
+      flexDirection="column"
+      justifyContent="center"
+      alignItems="center"
+      height={20}
+      width={80}
+      borderStyle="round"
+      borderColor={LAYERS.border}
+    >
+      <Text bold color={LAYERS.accent}>
+        CLI-USE TRADING TERMINAL
+      </Text>
+      <Box marginTop={1}>
+        <Text color={LAYERS.textDim}>v1.0.0-beta</Text>
+      </Box>
+
+      <Box marginTop={2} flexDirection="column" alignItems="center">
+        <Text color={LAYERS.green}>{progressBar}</Text>
+        <Box marginTop={1}>
+          <Text color={LAYERS.textMain}>
+            {progress.toFixed(0)}% - {status}
+          </Text>
+        </Box>
+      </Box>
+    </Box>
+  );
+};
+
+const AppWrapper = () => {
+  const [isLoading, setIsLoading] = useState(true);
+
+  if (isLoading) {
+    return <LoadingScreen onComplete={() => setIsLoading(false)} />;
+  }
+
+  return <TradingApp />;
+};
+
 // Only run if executing directly
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
-  render(<TradingApp />);
+  render(<AppWrapper />);
 }
