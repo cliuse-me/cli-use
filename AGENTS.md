@@ -15,13 +15,13 @@ Run the following commands in order:
     rm -rf node_modules package-lock.json && npm install
     ```
 
-2.  **Verify Code Quality**:
-    Run the test suite (Linting + Building).
+2.  **Verify Code Quality & Type Safety**:
+    Run the full test suite (Linting, Building, and Type Checking). If any type errors are found, **fix them** before proceeding.
     ```bash
-    npm run test
+    npm run typecheck && npm run test
     ```
 
-**Do NOT push** if any of these steps fail. Fix the issues locally first (e.g., using `overrides` in `package.json` for dependency conflicts).
+**Do NOT push** if any of these steps fail. Fix the issues locally first (e.g., resolving type errors or using `overrides` in `package.json` for dependency conflicts).
 
 ## Release Protocol
 
