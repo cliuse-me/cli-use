@@ -535,13 +535,14 @@ const CommandBar = ({
     setCommand('');
   };
 
-  const commandColor = command.startsWith('/agents')
-    ? LAYERS.yellow
-    : command.startsWith('/ai')
-      ? LAYERS.cyan
-      : command.startsWith('/predict')
-        ? LAYERS.orange
-        : undefined;
+  const commandColor =
+    command.startsWith('agents') || command.startsWith('agent')
+      ? LAYERS.yellow
+      : command.startsWith('ai')
+        ? LAYERS.cyan
+        : command.startsWith('predict')
+          ? LAYERS.orange
+          : undefined;
 
   return (
     <Box
@@ -559,7 +560,7 @@ const CommandBar = ({
           value={command}
           onChange={setCommand}
           onSubmit={handleSubmit}
-          placeholder="Type a command (e.g. /agent run strategy)"
+          placeholder="Type 'agent' or 'predict'..."
         />
       </Text>
       <Box flexGrow={1} />
@@ -697,9 +698,9 @@ export const TradingApp = () => {
   };
 
   const handleCommand = async (cmd: string) => {
-    if (cmd.includes('/agent') || cmd.includes('strategy')) {
+    if (cmd.includes('agent') || cmd.includes('strategy')) {
       runAgentStrategy();
-    } else if (cmd.includes('/predict')) {
+    } else if (cmd.includes('predict')) {
       setIsAiLoading(true);
       setAiPrediction(null);
       const result = await getBitcoinPrediction();
