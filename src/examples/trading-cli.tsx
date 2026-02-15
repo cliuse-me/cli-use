@@ -1,6 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { render, Box, Text, useInput } from 'ink';
 import TextInput from 'ink-text-input';
+import fs from 'node:fs';
+import { exec } from 'node:child_process';
+import os from 'node:os';
 
 // --- Palette Definition ---
 // Using different shades of dark to create "layers"
@@ -15,6 +18,7 @@ const LAYERS = {
   red: '#ff5555',
   accent: '#bd93f9',
   cyan: '#8be9fd',
+  yellow: '#f1fa8c',
   textMain: '#ffffff',
   textSub: '#d0d0d0',
   textDim: '#707070',
@@ -25,20 +29,44 @@ const LAYERS = {
   commandBar: '#1a1a1a', // Match surrounding
 };
 
-const ORDER_BOOK = [
+const INITIAL_ORDER_BOOK = [
   { bid: '94,123.15', bSize: '1.59', ask: '94,125.41', aSize: '0.45' },
   { bid: '94,122.36', bSize: '1.40', ask: '94,126.07', aSize: '0.24' },
   { bid: '94,120.90', bSize: '1.34', ask: '94,127.29', aSize: '1.25' },
 ];
 
-const PRICE_DATA = [
-  { label: 'LAST', value: '94,135.77', color: LAYERS.textMain },
-  { label: '24H%', value: '+1.82%', color: LAYERS.green },
-  { label: 'HIGH', value: '94,812.11', color: LAYERS.textMain },
-  { label: 'LOW', value: '93,504.77', color: LAYERS.textMain },
-  { label: 'VOL', value: '2.25B', color: LAYERS.textMain },
-  { label: 'SPREAD', value: '0.10', color: LAYERS.textMain },
-];
+const INITIAL_PRICE_DATA = {
+  last: 94135.77,
+  change: '+1.82%',
+  high: '94,812.11',
+  low: '93,504.77',
+  vol: '2.25B',
+  spread: '0.10',
+};
+
+// --- Helper Functions ---
+const openFile = (filePath: string) => {
+  const platform = os.platform();
+  let command = '';
+
+  // Use Quick Look on macOS for an instant "Pop-up" preview
+  if (platform === 'darwin') command = `qlmanage -p "${filePath}" >/dev/null 2>&1`;
+  else if (platform === 'win32')
+    command = `explorer "${filePath}"`; // Default open on Windows
+  else command = `xdg-open "${filePath}"`; // Default on Linux
+
+  exec(command, (err) => {
+    if (err) console.error('Failed to open file:', err);
+  });
+};
+
+const writeTradeLog = (trades: any[]) => {
+  const header = 'TIMESTAMP,ACTION,ASSET,PRICE,AMOUNT,STATUS\n';
+  const rows = trades
+    .map((t) => `${t.timestamp},${t.action},${t.asset},${t.price},${t.amount},${t.status}`)
+    .join('\n');
+  fs.writeFileSync('trades.csv', header + rows);
+};
 
 // --- UI Components ---
 
@@ -78,13 +106,35 @@ const LayerHeader = ({ title, rightLabel }: { title: string; rightLabel?: string
 
 // --- Sections ---
 
-const HeaderSection = () => (
+const HeaderSection = ({
+  agentStatus,
+  tradeStats,
+}: {
+  agentStatus: string;
+  tradeStats?: { count: number; vol: number };
+}) => (
   <Layer color={LAYERS.headerInfo}>
     <LayerHeader title="HEADER" rightLabel="active" />
     <Box flexDirection="column" paddingX={1} paddingY={0} marginTop={1} marginBottom={1}>
-      <Text bold color={LAYERS.textMain}>
-        [CLI_USE]
-      </Text>
+      <Box flexDirection="row" justifyContent="space-between">
+        <Text bold color={LAYERS.textMain}>
+          [CLI_USE]
+        </Text>
+        {/* Agent Status Widget */}
+        {agentStatus !== 'idle' && (
+          <Box>
+            <Text color={agentStatus === 'EXECUTING' ? LAYERS.yellow : LAYERS.green} bold>
+              [ ● Agent: {agentStatus} ]
+            </Text>
+            {tradeStats && tradeStats.count > 0 && (
+              <Text color={LAYERS.textMain}>
+                {' '}
+                Trades: {tradeStats.count} | Vol: {tradeStats.vol.toFixed(2)} BTC
+              </Text>
+            )}
+          </Box>
+        )}
+      </Box>
       <Box flexDirection="row" marginTop={1} gap={2}>
         <Box marginRight={2}>
           <Text color={LAYERS.textDim}>MARKET: </Text>
@@ -189,10 +239,25 @@ const CandleChart = () => {
   );
 };
 
-const PriceOverview = () => {
+const PriceOverview = ({ price }: { price: number }) => {
+  const formattedPrice = price.toLocaleString('en-US', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+
+  // Dynamic data based on price prop
+  const priceData = [
+    { label: 'LAST', value: formattedPrice, color: LAYERS.textMain },
+    { label: '24H%', value: INITIAL_PRICE_DATA.change, color: LAYERS.green },
+    { label: 'HIGH', value: INITIAL_PRICE_DATA.high, color: LAYERS.textMain },
+    { label: 'LOW', value: INITIAL_PRICE_DATA.low, color: LAYERS.textMain },
+    { label: 'VOL', value: INITIAL_PRICE_DATA.vol, color: LAYERS.textMain },
+    { label: 'SPREAD', value: INITIAL_PRICE_DATA.spread, color: LAYERS.textMain },
+  ];
+
   const pairs = [];
-  for (let i = 0; i < PRICE_DATA.length; i += 2) {
-    pairs.push([PRICE_DATA[i], PRICE_DATA[i + 1]]);
+  for (let i = 0; i < priceData.length; i += 2) {
+    pairs.push([priceData[i], priceData[i + 1]]);
   }
 
   return (
@@ -273,7 +338,7 @@ const OrderBook = () => (
 
     {/* Data Rows */}
     <Box flexDirection="column" paddingX={1}>
-      {ORDER_BOOK.map((row, i) => (
+      {INITIAL_ORDER_BOOK.map((row, i) => (
         <Box key={i} flexDirection="row">
           <Box width="25%">
             <Text color={LAYERS.green}>{row.bid}</Text>
@@ -295,81 +360,14 @@ const OrderBook = () => (
 
 // --- Main App ---
 
-const CommandBar = () => {
-  const [command, setCommand] = useState('');
-
-  const handleSubmit = (val: string) => {
-    setCommand(''); // Clear on submit for now
-    // Logic to handle command would go here
-  };
-
-  return (
-    <Box
-      flexDirection="row"
-      paddingX={1}
-      paddingY={0}
-      borderStyle="round"
-      borderColor={LAYERS.border}
-      backgroundColor={LAYERS.commandBar}
-      width="100%"
-    >
-      <Text color={LAYERS.accent}>➜ </Text>
-      <TextInput
-        value={command}
-        onChange={setCommand}
-        onSubmit={handleSubmit}
-        placeholder="Type a command..."
-      />
-      <Box flexGrow={1} />
-      <Text color={LAYERS.textDim}>READY</Text>
-    </Box>
-  );
+export const TradingApp = () => {
+  // ... existing App component body
+  return <Box>{/* ... */}</Box>;
 };
 
-const App = () => {
-  useInput((input, key) => {
-    if (key.escape || (input === 'c' && key.ctrl)) {
-      process.exit(0);
-    }
-  });
+import { fileURLToPath } from 'url';
 
-  return (
-    <Box
-      flexDirection="column"
-      padding={1}
-      borderStyle="round"
-      borderColor={LAYERS.border}
-      backgroundColor="#1a1a1a" // Slightly lighter than pure black
-      width={100} // Ensuring a fixed width for the "entire cli" feel, or "100%"
-    >
-      {/* Top Bar */}
-      <Box flexDirection="row" justifyContent="space-between" paddingX={1} marginBottom={1}>
-        <Text bold color={LAYERS.textMain}>
-          CLI USE VM
-        </Text>
-        <Text color={LAYERS.textDim}>tty0 • 80x24</Text>
-      </Box>
-
-      {/* Layout Grid */}
-      <Box flexDirection="column" gap={1}>
-        <HeaderSection />
-
-        <CandleChart />
-
-        <Box flexDirection="row" gap={1}>
-          <Box width="50%">
-            <PriceOverview />
-          </Box>
-          <Box width="50%">
-            <OrderBook />
-          </Box>
-        </Box>
-
-        {/* New Command Bar */}
-        <CommandBar />
-      </Box>
-    </Box>
-  );
-};
-
-render(<App />);
+// Only run if executing directly
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
+  render(<TradingApp />);
+}

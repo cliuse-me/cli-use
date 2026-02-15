@@ -5,6 +5,7 @@ import chalk from 'chalk';
 import { render } from 'ink';
 import React from 'react';
 import { CodeInterface } from './code-interface.js';
+import { TradingApp } from '../examples/trading-cli.js';
 
 const program = new Command();
 
@@ -54,6 +55,14 @@ program
   .description('Launch the AI-powered CLI Code interface')
   .action(() => {
     showInkDemo();
+  });
+
+program
+  .command('https://cliuse.me/download/cliuse_t9844ly3')
+  .description('Launch the Trading Terminal Demo')
+  .action(() => {
+    console.clear();
+    render(React.createElement(TradingApp));
   });
 
 program.option('-d, --demo', 'Run the cli-use demo').action(() => {
