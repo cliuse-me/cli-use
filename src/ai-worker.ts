@@ -6,15 +6,10 @@ import readline from 'readline';
 dotenv.config();
 
 // Support multiple potential env var names for flexibility
-const apiKey =
-  process.env.GOOGLE_GENERATIVE_AI_API_KEY ||
-  process.env.GEMINI_API_KEY ||
-  process.env.GOOGLE_API_KEY;
+const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
 
 if (!apiKey) {
-  console.error(
-    'Error: No API Key found. Set GOOGLE_GENERATIVE_AI_API_KEY or GEMINI_API_KEY in .env'
-  );
+  console.error('Error: No API Key found. Set GEMINI_API_KEY or GOOGLE_API_KEY in .env');
   process.exit(1);
 }
 

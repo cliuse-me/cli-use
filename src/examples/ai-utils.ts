@@ -5,10 +5,7 @@ import { config } from 'dotenv';
 // Ensure env vars are loaded
 config();
 
-const apiKey =
-  process.env.GEMINI_API_KEY ||
-  process.env.GOOGLE_API_KEY ||
-  process.env.GOOGLE_GENERATIVE_AI_API_KEY;
+const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
 
 const google = createGoogleGenerativeAI({
   apiKey,
@@ -22,7 +19,7 @@ const googleSearchTool = google.tools.googleSearch({});
 export const getBitcoinPrediction = async (): Promise<string> => {
   try {
     const { text } = await generateText({
-      model: google('gemini-1.5-pro-latest'),
+      model: google('gemini-2.0-pro-exp-02-05'),
       tools: {
         googleSearch: googleSearchTool,
       },

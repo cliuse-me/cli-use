@@ -5,9 +5,7 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 async function testWorker() {
-  const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY || 
-                 process.env.GEMINI_API_KEY || 
-                 process.env.GOOGLE_API_KEY;
+  const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
 
   if (!apiKey) {
     console.error('❌ Error: No API Key found.');
@@ -17,7 +15,7 @@ async function testWorker() {
   console.log('✅ API Key found.');
 
   const google = createGoogleGenerativeAI({ apiKey });
-  
+
   try {
     console.log('⏳ Sending test prompt to Gemini 2.0 Flash...');
     const { text } = await generateText({
