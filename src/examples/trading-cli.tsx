@@ -183,11 +183,13 @@ const Layer = ({
   height,
   width,
   title,
+  paddingX = 1,
 }: {
   children: React.ReactNode;
   height?: number;
   width?: string | number;
   title?: string;
+  paddingX?: number;
 }) => (
   <Box
     flexDirection="column"
@@ -196,7 +198,7 @@ const Layer = ({
     flexGrow={1}
     borderStyle="single"
     borderColor={LAYERS.border}
-    paddingX={1}
+    paddingX={paddingX}
   >
     {title && (
       <Box marginTop={-1} marginLeft={1} paddingX={1}>
@@ -526,18 +528,21 @@ const AIPredictionPanel = ({
   if (!prediction && !isLoading) return null;
 
   return (
-    <Layer title="AI PREDICTION">
-      <Box paddingX={0} paddingY={0}>
-        {isLoading ? (
-          <Text color={LAYERS.cyan}>
-            <Text color={LAYERS.cyan} bold>
-              ⟳
-            </Text>{' '}
-            Analyzing market data with Gemini Pro...
-          </Text>
-        ) : (
-          <Text color={LAYERS.cyan}>{prediction}</Text>
-        )}
+    <Layer title="AI PREDICTION" paddingX={0}>
+      <Box flexDirection="row" backgroundColor={LAYERS.commandBar}>
+        <Box width={1} backgroundColor={LAYERS.orange} />
+        <Box paddingX={1} paddingY={0} flexGrow={1}>
+          {isLoading ? (
+            <Text color={LAYERS.cyan}>
+              <Text color={LAYERS.cyan} bold>
+                ⟳
+              </Text>{' '}
+              Analyzing market data with Gemini Pro...
+            </Text>
+          ) : (
+            <Text color={LAYERS.cyan}>{prediction}</Text>
+          )}
+        </Box>
       </Box>
     </Layer>
   );
