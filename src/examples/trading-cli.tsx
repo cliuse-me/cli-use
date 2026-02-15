@@ -133,7 +133,7 @@ const LAYERS = {
   // Structure
   headerBar: '#555555',
   border: '#555555',
-  commandBar: '#1a1a1a', // Match surrounding
+  commandBar: '#000000', // Black input background
 };
 
 const INITIAL_ORDER_BOOK = [
