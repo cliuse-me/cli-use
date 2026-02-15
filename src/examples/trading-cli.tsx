@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { render, Box, Text, useInput } from 'ink';
 import TextInput from 'ink-text-input';
 import fs from 'node:fs';
@@ -159,86 +159,6 @@ const HeaderSection = ({
     </Box>
   </Layer>
 );
-
-const ChartBar = ({ height, color, align }: any) => {
-  // Robust rendering using text blocks
-  const lines = Array.from({ length: height });
-  const Bar = (
-    <Box flexDirection="column">
-      {lines.map((_, i) => (
-        <Text key={i} color={color}>
-          ██
-        </Text>
-      ))}
-    </Box>
-  );
-  const Wick = (
-    <Box width={2} height={1} justifyContent="center">
-      <Text color={color}>│</Text>
-    </Box>
-  );
-
-  return (
-    <Box flexDirection="column" alignItems="center" marginX={1}>
-      {align === 'bottom' ? (
-        <>
-          {Wick}
-          {Bar}
-        </>
-      ) : (
-        <>
-          {Bar}
-          {Wick}
-        </>
-      )}
-    </Box>
-  );
-};
-
-const CandleChart = () => {
-  const leftHeights = [3, 5, 2, 6, 4, 3, 5, 2];
-  const rightHeights = [4, 2, 5, 3, 6, 5, 4, 6];
-
-  return (
-    <Layer color={LAYERS.chart}>
-      <LayerHeader title="CANDLE CHART" rightLabel="candles" />
-      <Box flexDirection="row" height={12} paddingY={1} justifyContent="center" alignItems="center">
-        {/* Bearish Side */}
-        <Box width="45%" alignItems="flex-end" justifyContent="space-around" flexDirection="row">
-          {leftHeights.map((h, i) => (
-            <ChartBar key={i} height={h} color={LAYERS.red} align="bottom" />
-          ))}
-        </Box>
-
-        {/* Center Gap/Line */}
-        <Box
-          width="10%"
-          alignItems="center"
-          justifyContent="center"
-          flexDirection="column"
-          height="100%"
-        >
-          {Array.from({ length: 10 }).map((_, i) => (
-            <Text key={i} color={LAYERS.border}>
-              │
-            </Text>
-          ))}
-        </Box>
-
-        {/* Bullish Side */}
-        <Box width="45%" alignItems="flex-start" justifyContent="space-around" flexDirection="row">
-          {rightHeights.map((h, i) => (
-            <ChartBar key={i} height={h} color={LAYERS.green} align="top" />
-          ))}
-        </Box>
-      </Box>
-      <Box flexDirection="row" justifyContent="space-between" paddingX={2} marginTop={-1}>
-        <Text color={LAYERS.cyan}>LOW</Text>
-        <Text color={LAYERS.cyan}>HIGH</Text>
-      </Box>
-    </Layer>
-  );
-};
 
 const PriceOverview = ({ price }: { price: number }) => {
   const formattedPrice = price.toLocaleString('en-US', {
@@ -454,7 +374,7 @@ export const TradingApp = () => {
             setCurrentPrice(INITIAL_PRICE_DATA.last);
           }, 2000);
         }
-      }, 300);
+      }, 100);
     }, 3000);
   };
 
@@ -484,8 +404,6 @@ export const TradingApp = () => {
       {/* Layout Grid */}
       <Box flexDirection="column" gap={1}>
         <HeaderSection agentStatus={agentStatus} tradeStats={tradeStats} />
-
-        <CandleChart />
 
         <Box flexDirection="row" gap={1}>
           <Box width="50%">
