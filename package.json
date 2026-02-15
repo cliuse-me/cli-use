@@ -86,13 +86,16 @@
   },
   "overrides": {
     "ink-select-input": {
-      "ink": "$ink"
+      "ink": "$ink",
+      "react": "$react"
     },
     "ink-spinner": {
-      "ink": "$ink"
+      "ink": "$ink",
+      "react": "$react"
     },
     "ink-text-input": {
-      "ink": "$ink"
+      "ink": "$ink",
+      "react": "$react"
     }
   },
   "devDependencies": {
