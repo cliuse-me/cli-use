@@ -1,9 +1,18 @@
 import { generateText } from 'ai';
-import { google } from '@ai-sdk/google';
+import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { config } from 'dotenv';
 
 // Ensure env vars are loaded
 config();
+
+const apiKey =
+  process.env.GEMINI_API_KEY ||
+  process.env.GOOGLE_API_KEY ||
+  process.env.GOOGLE_GENERATIVE_AI_API_KEY;
+
+const google = createGoogleGenerativeAI({
+  apiKey,
+});
 
 // Create a specialized search tool function wrapper
 // Note: google.tools.googleSearch() might need to be awaited or configured differently
@@ -26,6 +35,6 @@ export const getBitcoinPrediction = async (): Promise<string> => {
     return text;
   } catch (error: any) {
     console.error('AI Error:', error);
-    return `Error retrieving prediction: ${error.message || 'Unknown error'}. Ensure GOOGLE_GENERATIVE_AI_API_KEY is set.`;
+    return `Error retrieving prediction: ${error.message || 'Unknown error'}. Ensure GEMINI_API_KEY or GOOGLE_API_KEY is set.`;
   }
 };
