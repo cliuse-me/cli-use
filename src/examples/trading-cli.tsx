@@ -130,7 +130,7 @@ const HeaderSection = ({
             {tradeStats && tradeStats.count > 0 && (
               <Text color={LAYERS.textMain}>
                 {' '}
-                Trades: {tradeStats.count} | Vol: {tradeStats.vol.toFixed(2)} BTC
+                Trades: {tradeStats.count} | Vol: {(tradeStats.vol * 100).toFixed(0)}%
               </Text>
             )}
           </Box>
