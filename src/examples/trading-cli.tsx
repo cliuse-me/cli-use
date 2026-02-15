@@ -1,12 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { render, Box, Text, useInput } from 'ink';
 import TextInput from 'ink-text-input';
+import Spinner from 'ink-spinner';
 import fs from 'node:fs';
 import { exec } from 'node:child_process';
 import os from 'node:os';
 import { fileURLToPath } from 'url';
 import { JSONFilePreset } from 'lowdb/node';
-import { getBitcoinPrediction } from './ai-utils';
+import { getBitcoinPrediction, getAgentStrategy } from './ai-utils';
 
 // --- API & Types ---
 
@@ -529,28 +530,47 @@ const MarketTrades = ({ trades }: { trades?: TradeData[] | null }) => {
 // --- Main App ---
 
 const AIPredictionPanel = ({
-  prediction,
+  title,
+  content,
   isLoading,
+  progress,
 }: {
-  prediction: string | null;
+  title: string;
+  content: string | null;
   isLoading: boolean;
+  progress?: number;
 }) => {
-  if (!prediction && !isLoading) return null;
+  if (!content && !isLoading && progress === undefined) return null;
+
+  let progressBar = '';
+  if (progress !== undefined) {
+    const progressBarWidth = 40;
+    const filledWidth = Math.floor((progress / 100) * progressBarWidth);
+    const emptyWidth = progressBarWidth - filledWidth;
+    progressBar = '█'.repeat(filledWidth) + '░'.repeat(emptyWidth);
+  }
 
   return (
-    <Layer title="AI PREDICTION" paddingX={0}>
+    <Layer title={title} paddingX={0}>
       <Box flexDirection="row" backgroundColor="#222222">
         <Box width={1} backgroundColor={LAYERS.orange} />
-        <Box paddingX={1} paddingY={0} flexGrow={1}>
+        <Box paddingX={1} paddingY={0} flexGrow={1} flexDirection="column">
           {isLoading ? (
             <Text color={LAYERS.cyan}>
               <Text color={LAYERS.cyan} bold>
-                ⟳
+                <Spinner type="dots" />
               </Text>{' '}
               Analyzing market data with Gemini Pro...
             </Text>
           ) : (
-            <Text color={LAYERS.cyan}>{prediction}</Text>
+            <Box flexDirection="column">
+              <Text color={LAYERS.cyan}>{content}</Text>
+              {progress !== undefined && (
+                <Box marginTop={1}>
+                  <Text color={LAYERS.green}>{progressBar}</Text>
+                </Box>
+              )}
+            </Box>
           )}
         </Box>
       </Box>
@@ -622,8 +642,19 @@ export const TradingDashboard = () => {
   const [orderBook, setOrderBook] = useState<OrderBookData | null>(null);
   const [trades, setTrades] = useState<TradeData[] | null>(null);
   const [tradeStats, setTradeStats] = useState({ count: 0, vol: 0 });
-  const [aiPrediction, setAiPrediction] = useState<string | null>(null);
-  const [isAiLoading, setIsAiLoading] = useState(false);
+  const [panelState, setPanelState] = useState<{
+    title: string;
+    content: string | null;
+    isLoading: boolean;
+    progress?: number;
+  }>({ title: 'AI PREDICTION', content: null, isLoading: false });
+  const [predictionSignal, setPredictionSignal] = useState<'BUY' | 'SELL' | 'HOLD' | null>(null);
+
+  const marketDataRef = useRef<TickerData | null>(null);
+
+  useEffect(() => {
+    marketDataRef.current = marketData;
+  }, [marketData]);
 
   useInput((input, key) => {
     if (key.escape || (input === 'c' && key.ctrl)) {
@@ -692,33 +723,72 @@ export const TradingDashboard = () => {
     return () => clearInterval(interval);
   }, []);
 
-  const runAgentStrategy = () => {
+  const runAgentStrategy = async () => {
+    // Clear any previous panel state & show loading
+    setPanelState({
+      title: 'AGENTS STRATEGY',
+      content: null,
+      isLoading: true,
+    });
+
+    // Fetch AI Strategy (simpler model)
+    const currentPrice = marketDataRef.current?.lastPrice || '94000';
+    const strategyText = await getAgentStrategy(currentPrice);
+
+    // Update panel with strategy
+    setPanelState({
+      title: 'AGENTS STRATEGY',
+      content: `Strategy: ${strategyText}\n\nAgent is initializing...`,
+      isLoading: false,
+    });
+
     setAgentStatus('MONITORING');
     setTradeStats({ count: 0, vol: 0 });
     const tradesList: TradeData[] = [];
     let count = 0;
 
-    const currentPrice = marketData ? parseFloat(marketData.lastPrice) : INITIAL_PRICE_DATA.last;
-
-    // T+2s: Simulate Price Drop
+    // T+4s: Simulate Price Drop (Extended monitoring phase)
     setTimeout(() => {
       // For simulation, we might want to force a drop in the displayed price
       // But our volatility loop will overwrite it.
       // For this demo, let's just let the agent "react" to the current price.
-    }, 2000);
+    }, 4000);
 
-    // T+3s: Execute
+    // T+5s: Execute (Start execution phase)
     setTimeout(() => {
       setAgentStatus('EXECUTING');
 
+      setPanelState({
+        title: 'AGENTS STRATEGY',
+        content: `Strategy: ${strategyText}\n\nAgent is testing the strategy...`,
+        isLoading: false,
+        progress: 0,
+      });
+
+      // Run for 5 seconds (50 ticks * 100ms) to complete 10s total duration
       const interval = setInterval(() => {
         count++;
+        const currentProgress = Math.min((count / 50) * 100, 100);
+
+        if (count < 50) {
+          setPanelState({
+            title: 'AGENTS STRATEGY',
+            content: `Strategy: ${strategyText}\n\nAgent is testing the strategy...`,
+            isLoading: false,
+            progress: currentProgress,
+          });
+        }
+
+        const currentRefPrice = marketDataRef.current
+          ? parseFloat(marketDataRef.current.lastPrice)
+          : INITIAL_PRICE_DATA.last;
+
         const newTrade: TradeData = {
           id: Date.now() + count,
           time: Date.now(),
           isBuyerMaker: false, // Buy = false isBuyerMaker (taker buy)
           qty: '0.05',
-          price: (currentPrice - count * 0.5).toString(),
+          price: (currentRefPrice - count * 0.5).toString(),
         };
         tradesList.push(newTrade);
 
@@ -727,29 +797,36 @@ export const TradingDashboard = () => {
           vol: prev.vol + 0.05,
         }));
 
-        if (count >= 10) {
+        if (count >= 50) {
           clearInterval(interval);
           setAgentStatus('FINALIZING');
           writeTradeLog(tradesList);
           openFile('trades.csv');
+
+          // Show success message only after completion
+          setPanelState({
+            title: 'AGENTS STRATEGY',
+            content: `Strategy: ${strategyText}\n\nStrategy succesfully tested. Ready to deploy.`,
+            isLoading: false,
+            progress: 100,
+          });
 
           setTimeout(() => {
             setAgentStatus('idle');
           }, 2000);
         }
       }, 100);
-    }, 3000);
+    }, 5000);
   };
 
   const handleCommand = async (cmd: string) => {
     if (cmd.includes('agent') || cmd.includes('strategy')) {
       runAgentStrategy();
     } else if (cmd.includes('predict')) {
-      setIsAiLoading(true);
-      setAiPrediction(null);
+      setPanelState({ title: 'AI PREDICTION', content: null, isLoading: true });
       const result = await getBitcoinPrediction();
-      setAiPrediction(result);
-      setIsAiLoading(false);
+      setPanelState({ title: 'AI PREDICTION', content: result.text, isLoading: false });
+      setPredictionSignal(result.signal);
     }
   };
 
@@ -790,12 +867,21 @@ export const TradingDashboard = () => {
 
         {/* AI Prediction Section */}
         <Box marginTop={1}>
-          <AIPredictionPanel prediction={aiPrediction} isLoading={isAiLoading} />
+          <AIPredictionPanel
+            title={panelState.title}
+            content={panelState.content}
+            isLoading={panelState.isLoading}
+            progress={panelState.progress}
+          />
         </Box>
 
         {/* New Command Bar */}
         <Box marginTop={1}>
           <CommandBar onCommand={handleCommand} status={agentStatus} />
+        </Box>
+
+        <Box marginTop={1} justifyContent="center">
+          <Text color={LAYERS.textDim}>Press Ctrl+C to exit</Text>
         </Box>
       </Box>
     </Box>
