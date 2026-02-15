@@ -67,6 +67,7 @@
   },
   "dependencies": {
     "@ai-sdk/google": "^3.0.29",
+    "@cli-use/tui": "^0.1.19",
     "@types/react-dom": "^19.2.3",
     "ai": "^6.0.86",
     "chalk": "^5.4.1",

@@ -420,6 +420,7 @@ const OrderBook = ({ depth }: { depth?: OrderBookData | null }) => {
         borderBottom
         borderStyle="single"
         borderColor={LAYERS.border}
+        backgroundColor={'#333'}
       >
         <Box width="25%">
           <Text color={LAYERS.textSub} bold>
@@ -580,29 +581,37 @@ const CommandBar = ({
           ? LAYERS.orange
           : undefined;
 
+  // Emulate Gemini-CLI's HalfLinePaddedBox style
+  // Using fixed width 96 based on parent width=100 minus borders/padding
+  const barWidth = 96;
+
   return (
-    <Box
-      flexDirection="row"
-      paddingX={1}
-      paddingY={0}
-      borderStyle="round"
-      borderColor={LAYERS.border}
-      backgroundColor={LAYERS.commandBar}
-      width="100%"
-    >
-      <Text color={LAYERS.accent}>➜ </Text>
-      <Text color={commandColor}>
-        <TextInput
-          value={command}
-          onChange={setCommand}
-          onSubmit={handleSubmit}
-          placeholder="Type 'agent' or 'predict'..."
-        />
-      </Text>
-      <Box flexGrow={1} />
-      <Text color={status === 'idle' ? LAYERS.textDim : LAYERS.green}>
-        {status === 'idle' ? 'READY' : status}
-      </Text>
+    <Box flexDirection="column" width="100%">
+      {/* Top half-line padding */}
+      <Box width="100%">
+        <Text color={LAYERS.commandBar}>{'▄'.repeat(barWidth)}</Text>
+      </Box>
+
+      <Box flexDirection="row" paddingX={1} backgroundColor={LAYERS.commandBar} width="100%">
+        <Text color={LAYERS.accent}>{status === 'EXECUTING' ? '!' : '>'} </Text>
+        <Text color={commandColor}>
+          <TextInput
+            value={command}
+            onChange={setCommand}
+            onSubmit={handleSubmit}
+            placeholder="Type 'agent' or 'predict'..."
+          />
+        </Text>
+        <Box flexGrow={1} />
+        <Text color={status === 'idle' ? LAYERS.textDim : LAYERS.green}>
+          {status === 'idle' ? '' : status}
+        </Text>
+      </Box>
+
+      {/* Bottom half-line padding */}
+      <Box width="100%">
+        <Text color={LAYERS.commandBar}>{'▀'.repeat(barWidth)}</Text>
+      </Box>
     </Box>
   );
 };
