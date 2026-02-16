@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { render, Box, Text, useInput, useApp } from 'ink';
+import { render, Box, Text, useInput } from 'ink';
 import TextInput from 'ink-text-input';
 import SelectInput from 'ink-select-input';
 import Spinner from 'ink-spinner';
@@ -52,6 +52,7 @@ const defaultData: Data = { market_data: [] };
 // We initialize it inside a function or lazily to avoid top-level await issues in some environments,
 // but for this CLI app, we can initialize it. However, since lowdb is ESM, let's keep it simple.
 // Note: In a real app, you might want to handle the db path more carefully.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 let dbInstance: any = null;
 
 const getDb = async () => {
@@ -86,6 +87,7 @@ const savePrice = async (price: number, type: 'REAL' | 'SIMULATED') => {
 const getLatestRealPrice = async (): Promise<number | null> => {
   try {
     const db = await getDb();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const realPrices = db.data.market_data.filter((p: any) => p.type === 'REAL');
     if (realPrices.length === 0) return null;
     return realPrices[realPrices.length - 1].price;
@@ -343,7 +345,8 @@ const InfoBox = ({
 
 const PriceOverview = ({ data }: { data: TickerData | typeof INITIAL_PRICE_DATA | null }) => {
   // Normalize data structure
-  const isTicker = (d: any): d is TickerData => d && 'lastPrice' in d;
+  const isTicker = (d: unknown): d is TickerData =>
+    !!d && typeof d === 'object' && 'lastPrice' in d;
 
   // Fallback to initial data if null
   const safeData = data || INITIAL_PRICE_DATA;
@@ -701,18 +704,18 @@ const CommandBar = ({
   );
 };
 
+const DEPLOYMENT_STEPS = [
+  'Building & Bundling Artifacts',
+  'Optimizing Execution Engine',
+  'Deploying to Edge Network',
+  'Verifying Global Propagation',
+];
+
 const DeploymentOverlay = ({ onComplete }: { onComplete: () => void }) => {
   const [phase, setPhase] = useState<'uploading' | 'deploying'>('uploading');
   const [progress, setProgress] = useState(0);
   const [currentStep, setCurrentStep] = useState(0);
   const [stepProgress, setStepProgress] = useState(0);
-
-  const steps = [
-    'Building & Bundling Artifacts',
-    'Optimizing Execution Engine',
-    'Deploying to Edge Network',
-    'Verifying Global Propagation',
-  ];
 
   // Upload Phase
   useEffect(() => {
@@ -734,7 +737,7 @@ const DeploymentOverlay = ({ onComplete }: { onComplete: () => void }) => {
   // Deployment Phase
   useEffect(() => {
     if (phase === 'deploying') {
-      if (currentStep < steps.length) {
+      if (currentStep < DEPLOYMENT_STEPS.length) {
         const timer = setInterval(() => {
           setStepProgress((prev) => {
             if (prev >= 100) {
@@ -801,7 +804,7 @@ const DeploymentOverlay = ({ onComplete }: { onComplete: () => void }) => {
         </Text>
       </Box>
       <Box flexDirection="column" paddingX={2} width="100%">
-        {steps.map((s, i) => {
+        {DEPLOYMENT_STEPS.map((s, i) => {
           let icon = '  ';
           let color = LAYERS.textDim;
           let subBar = null;
@@ -832,7 +835,7 @@ const DeploymentOverlay = ({ onComplete }: { onComplete: () => void }) => {
             </Box>
           );
         })}
-        {currentStep >= steps.length && (
+        {currentStep >= DEPLOYMENT_STEPS.length && (
           <Box marginTop={1} justifyContent="center">
             <Text color={LAYERS.green} bold>
               Strategy is Live!
@@ -845,7 +848,6 @@ const DeploymentOverlay = ({ onComplete }: { onComplete: () => void }) => {
 };
 
 export const TradingDashboard = () => {
-  const { exit } = useApp();
   const [agentStatus, setAgentStatus] = useState('idle'); // idle, MONITORING, EXECUTING
   const [marketData, setMarketData] = useState<TickerData | null>(null);
   const [orderBook, setOrderBook] = useState<OrderBookData | null>(null);
@@ -874,7 +876,6 @@ export const TradingDashboard = () => {
     selectionItems: agentOptions,
   });
 
-  const [predictionSignal, setPredictionSignal] = useState<'BUY' | 'SELL' | 'HOLD' | null>(null);
   const [isDeploying, setIsDeploying] = useState(false);
   const [activeAgent, setActiveAgent] = useState<string | null>(null);
 
@@ -963,7 +964,7 @@ export const TradingDashboard = () => {
     setIsSelectingAgent(false);
 
     // Extract agent handle from label (e.g., "1. @quant/volatility-master ($0.10/min)" -> "@quant/volatility-master")
-    const agentNameMatch = item.label.match(/(@[\w\/-]+)/);
+    const agentNameMatch = item.label.match(new RegExp('(@[\\w/-]+)'));
     const agentName = agentNameMatch ? agentNameMatch[0] : item.label;
 
     setActiveAgent(agentName);
@@ -1111,7 +1112,6 @@ export const TradingDashboard = () => {
         isLoading: false,
         orderPlan: result.orderPlan,
       });
-      setPredictionSignal(result.signal);
     } else if (cmd.includes('deploy')) {
       setIsDeploying(true);
     } else if (cmd.includes('train') || cmd.includes('sandbox')) {
