@@ -2,7 +2,7 @@
 
 ## 🔄 From Orchestration to Native Execution
 
-### 🧠 AI Native Apps: The Path to Complexity
+### 🧠 AI Native Apps
 
 ```mermaid
 graph LR
