@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { render, Box, Text, useInput, useApp } from 'ink';
 import TextInput from 'ink-text-input';
+import SelectInput from 'ink-select-input';
 import Spinner from 'ink-spinner';
 import fs from 'node:fs';
+
 import { exec } from 'node:child_process';
 import os from 'node:os';
 import { fileURLToPath } from 'url';
@@ -556,14 +558,18 @@ const AIPredictionPanel = ({
   isLoading,
   progress,
   orderPlan,
+  selectionItems,
+  onSelect,
 }: {
   title: string;
   content: string | null;
   isLoading: boolean;
   progress?: number;
   orderPlan?: OrderPlan[];
+  selectionItems?: { label: string; value: string }[];
+  onSelect?: (item: { label: string; value: string }) => void;
 }) => {
-  if (!content && !isLoading && progress === undefined) return null;
+  if (!content && !isLoading && progress === undefined && !selectionItems) return null;
 
   let progressBar = '';
   if (progress !== undefined) {
@@ -587,7 +593,14 @@ const AIPredictionPanel = ({
             </Text>
           ) : (
             <Box flexDirection="column">
-              <Text color={LAYERS.cyan}>{content}</Text>
+              {content && <Text color={LAYERS.cyan}>{content}</Text>}
+
+              {selectionItems && onSelect && (
+                <Box marginTop={1} flexDirection="column">
+                  <SelectInput items={selectionItems} onSelect={onSelect} />
+                </Box>
+              )}
+
               {orderPlan && orderPlan.length > 0 && (
                 <Box
                   flexDirection="column"
@@ -626,9 +639,13 @@ const AIPredictionPanel = ({
 const CommandBar = ({
   onCommand,
   status,
+  focused = true,
+  placeholder,
 }: {
   onCommand: (cmd: string) => void;
   status: string;
+  focused?: boolean;
+  placeholder?: string;
 }) => {
   const [command, setCommand] = useState('');
 
@@ -666,7 +683,8 @@ const CommandBar = ({
             value={command}
             onChange={setCommand}
             onSubmit={handleSubmit}
-            placeholder="Type 'agent' or 'predict'..."
+            placeholder={placeholder || "Type 'agent' or 'predict'..."}
+            focus={focused}
           />
         </Text>
         <Box flexGrow={1} />
@@ -833,15 +851,32 @@ export const TradingDashboard = () => {
   const [orderBook, setOrderBook] = useState<OrderBookData | null>(null);
   const [trades, setTrades] = useState<TradeData[] | null>(null);
   const [tradeStats, setTradeStats] = useState({ count: 0, vol: 0 });
+
+  const [isSelectingAgent, setIsSelectingAgent] = useState(true);
+
+  const agentOptions = [
+    { label: '1. @quant/volatility-master ($0.10/min)', value: 'volatility' },
+    { label: '2. @crypto/sentiment-whale ($0.05/min)', value: 'sentiment' },
+    { label: '3. @local/my-trained-model [Training...]', value: 'local' },
+  ];
+
   const [panelState, setPanelState] = useState<{
     title: string;
     content: string | null;
     isLoading: boolean;
     progress?: number;
     orderPlan?: OrderPlan[];
-  }>({ title: 'AI PREDICTION', content: null, isLoading: false });
+    selectionItems?: { label: string; value: string }[];
+  }>({
+    title: 'AGENT MARKETPLACE',
+    content: 'Selection of the best agents to make bitcoin strategies:',
+    isLoading: false,
+    selectionItems: agentOptions,
+  });
+
   const [predictionSignal, setPredictionSignal] = useState<'BUY' | 'SELL' | 'HOLD' | null>(null);
   const [isDeploying, setIsDeploying] = useState(false);
+  const [activeAgent, setActiveAgent] = useState<string | null>(null);
 
   const marketDataRef = useRef<TickerData | null>(null);
   const strategyIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -924,10 +959,29 @@ export const TradingDashboard = () => {
     return () => clearInterval(interval);
   }, []);
 
-  const runAgentStrategy = async () => {
+  const handleAgentSelect = (item: { label: string; value: string }) => {
+    setIsSelectingAgent(false);
+
+    // Extract agent handle from label (e.g., "1. @quant/volatility-master ($0.10/min)" -> "@quant/volatility-master")
+    const agentNameMatch = item.label.match(/(@[\w\/-]+)/);
+    const agentName = agentNameMatch ? agentNameMatch[0] : item.label;
+
+    setActiveAgent(agentName);
+
+    setPanelState({
+      title: 'AGENT MARKETPLACE',
+      content: `Agent Selected: ${agentName}\n\nWaiting for command...`,
+      isLoading: false,
+      selectionItems: undefined,
+    });
+  };
+
+  const runAgentStrategy = async (agentName?: string) => {
+    const title = agentName ? `AGENT: ${agentName}` : 'AGENTS STRATEGY';
+
     // Clear any previous panel state & show loading
     setPanelState({
-      title: 'AGENTS STRATEGY',
+      title: title,
       content: null,
       isLoading: true,
     });
@@ -938,7 +992,7 @@ export const TradingDashboard = () => {
 
     // Update panel with strategy
     setPanelState({
-      title: 'AGENTS STRATEGY',
+      title: title,
       content: `Strategy: ${strategyText}\n\nAgent is initializing...`,
       isLoading: false,
     });
@@ -960,7 +1014,7 @@ export const TradingDashboard = () => {
       setAgentStatus('EXECUTING');
 
       setPanelState({
-        title: 'AGENTS STRATEGY',
+        title: title,
         content: `Strategy: ${strategyText}\n\nAgent is testing the strategy...`,
         isLoading: false,
         progress: 0,
@@ -974,7 +1028,7 @@ export const TradingDashboard = () => {
 
         if (count < 50) {
           setPanelState({
-            title: 'AGENTS STRATEGY',
+            title: title,
             content: `Strategy: ${strategyText}\n\nAgent is testing the strategy...`,
             isLoading: false,
             progress: currentProgress,
@@ -1014,7 +1068,7 @@ export const TradingDashboard = () => {
 
           // Show success message only after completion
           setPanelState({
-            title: 'AGENTS STRATEGY',
+            title: title,
             content: `Strategy: ${strategyText}\n\nStrategy succesfully tested. Ready to deploy.`,
             isLoading: false,
             progress: 100,
@@ -1029,8 +1083,25 @@ export const TradingDashboard = () => {
   };
 
   const handleCommand = async (cmd: string) => {
+    if (cmd.includes('deploy')) {
+      setIsDeploying(true);
+      return;
+    }
+
+    // If an agent is selected, assume this is a prompt to the agent
+    if (activeAgent) {
+      runAgentStrategy(activeAgent);
+      return;
+    }
+
     if (cmd.includes('agent') || cmd.includes('strategy')) {
-      runAgentStrategy();
+      setIsSelectingAgent(true);
+      setPanelState({
+        title: 'AGENT MARKETPLACE',
+        content: 'Selection of the best agents to make bitcoin strategies:',
+        isLoading: false,
+        selectionItems: agentOptions,
+      });
     } else if (cmd.includes('predict')) {
       setPanelState({ title: 'AI PREDICTION', content: null, isLoading: true });
       const result = await getBitcoinPrediction();
@@ -1043,6 +1114,34 @@ export const TradingDashboard = () => {
       setPredictionSignal(result.signal);
     } else if (cmd.includes('deploy')) {
       setIsDeploying(true);
+    } else if (cmd.includes('train') || cmd.includes('sandbox')) {
+      setPanelState({
+        title: 'AGENT FOUNDRY',
+        content: null,
+        isLoading: true,
+      });
+      // Simulation of training process
+      let epoch = 0;
+      const trainingInterval = setInterval(() => {
+        epoch++;
+        const progress = (epoch / 20) * 100;
+        setPanelState({
+          title: 'TRAINING AGENT [SANDBOX]',
+          content: `Running Synthetic Scenario: "Flash Crash 2024"\nEpoch: ${epoch}/20\nReward Function: +${(100 + epoch * 2.5).toFixed(1)}%`,
+          isLoading: false,
+          progress: progress,
+        });
+
+        if (epoch >= 20) {
+          clearInterval(trainingInterval);
+          setPanelState({
+            title: 'TRAINING COMPLETE',
+            content: `Agent Weights Optimized.\nValidation Score: 98.4%\n\nReady to publish to Marketplace.`,
+            isLoading: false,
+            progress: 100,
+          });
+        }
+      }, 200);
     }
   };
 
@@ -1082,7 +1181,13 @@ export const TradingDashboard = () => {
         <Text bold color={LAYERS.textMain}>
           CLI USE VM
         </Text>
-        <Text color={LAYERS.textDim}>tty0 • 80x24</Text>
+        <Box>
+          <Text color={LAYERS.green} bold>
+            {' '}
+            [SANDBOX ACTIVE]{' '}
+          </Text>
+          <Text color={LAYERS.textDim}> • tty0 • 80x24</Text>
+        </Box>
       </Box>
 
       {/* Layout Grid */}
@@ -1112,12 +1217,19 @@ export const TradingDashboard = () => {
             isLoading={panelState.isLoading}
             progress={panelState.progress}
             orderPlan={panelState.orderPlan}
+            selectionItems={panelState.selectionItems}
+            onSelect={handleAgentSelect}
           />
         </Box>
 
         {/* New Command Bar */}
         <Box marginTop={1}>
-          <CommandBar onCommand={handleCommand} status={agentStatus} />
+          <CommandBar
+            onCommand={handleCommand}
+            status={agentStatus}
+            focused={!isSelectingAgent}
+            placeholder={activeAgent ? `Message ${activeAgent}...` : undefined}
+          />
         </Box>
 
         <Box marginTop={1} justifyContent="center">

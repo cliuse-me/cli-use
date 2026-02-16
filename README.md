@@ -2,7 +2,7 @@
 
 ![ScreenRecording2026-02-14at02 27 35-ezgif com-video-to-gif-converter](https://github.com/user-attachments/assets/91ae0ece-59e6-4c26-b563-17bfe0258620)
 
-> Easily build agentic CLI tools 
+> Easily build agentic CLI tools
 
 **cli-use** is a powerful framework for building stunning terminal applications. It combines the ease of **React** for standard TUIs with a high-performance **Native Rust/Ratatui** engine for advanced, AI-powered interfaces.
 
@@ -150,6 +150,73 @@ cli-use/
 │       └── cli-use-demo.tsx # React/cli-use Demo
 ├── package.json
 └── README.md
+```
+
+## 🧠 Philosophy & Strategy
+
+`cli-use` is not just a framework; it's a movement towards **Agent-First Software**.
+We believe the future of AI is not in chat windows, but in specialized, interactive CLI agents distributed instantly via SSH.
+
+- 📖 **[Read the Manifesto](docs/PHILOSOPHY.md)**: Why software must be instant, ephemeral, and terminal-native.
+- 📊 **[Market Analysis](docs/MARKET_ANALYSIS.md)**: Why we are building the "Agent Economy" and the "Steam for AI Agents".
+- ⚔️ **[Competitive Analysis](docs/COMPETITIVE_ANALYSIS.md)**: How we win against Replit, Lovable, and LangChain.
+
+### The Vision
+
+```mermaid
+graph TD
+    Problem[AI struggles with Complex Apps] -->|Reason| Context[Context Overload]
+    Context -->|Caused by| BigApps[Bigger Applications]
+    BigApps -->|Generate| Boilerplate[Unnecessary Boilerplate]
+
+    Question[Future of Software?] -->|Answer| Solution[Simpler, Smaller, Replaceable]
+    Solution -->|Enables| CLI[CLI Use]
+
+    CLI -->|Action| Terminal[Ship via Terminal]
+    Terminal -->|Removes| Boilerplate
+
+    CLI -->|Unlocks| AINative[True AI Native Experience]
+    AINative -->|Allows Agents to| Resources[Harness Computer Resources]
+    Resources -->|Enables| Evolution[Learn & Evolve]
+    Evolution -->|Result| FullLife[Agents have a full life]
+
+    Trend[Market Trend] -->|Examples| Examples[Claude Code, Open Claw]
+    Examples -->|Validates| CLI
+
+    CLI -->|Ultimate Goal| Objective[Ship TRUE AI-native Applications]
+
+    style Problem fill:#ffcccc,stroke:#333,stroke-width:2px
+    style CLI fill:#ccffcc,stroke:#333,stroke-width:4px
+    style Objective fill:#ccccff,stroke:#333,stroke-width:2px
+```
+
+### The Context Problem
+
+```mermaid
+graph TD
+    Start[1. Desire for Complex App] -->|Leads to| Scale[2. Application Grows]
+    Scale -->|Creates| Context[3. Massive Context Required]
+    Context -->|Generates| Boilerplate[4. Unnecessary Boilerplate]
+    Boilerplate -->|Causes| Overflow{5. Context Window Overflow}
+    Overflow -->|Result| Failure[6. AI Cannot Maintain]
+    Failure -->|Outcome| Confusion[7. Agents & Humans Confused]
+
+    style Overflow fill:#ff9999,stroke:#f00,stroke-width:2px
+    style Failure fill:#ffcccc,stroke:#333
+```
+
+### The Agent Economy
+
+```mermaid
+graph TD
+    Data[1. Synthetic Sandbox] -->|Trains| Agent[2. Expert Agent]
+    Agent -->|Published to| Market[3. Agent Marketplace]
+    Market -->|Rented by| User[4. Consumer]
+    User -->|Via| SSH[5. SSH Runtime]
+    SSH -->|Pays| Creator[6. Creator Monetization]
+
+    style Market fill:#ccffcc,stroke:#333
+    style SSH fill:#ccccff,stroke:#333
 ```
 
 ## 🤝 Contributing
