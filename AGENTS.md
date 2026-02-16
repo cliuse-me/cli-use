@@ -6,6 +6,9 @@
 You must receive the explicit command "COMMIT TO GIT" from the user.
 This command is valid **ONLY** for the current execution/response. Do not assume it applies to future actions or turns.
 
+**DONT UNDER ANY CIRCUMSTANCE COMMIT CODE WITHOUT EXPLICIT PERMISSION.**
+**Wait for the user to type "commit to git" or similar.**
+
 ## CI/CD Verification Protocol
 
 Before pushing any changes to the remote repository, you **MUST** simulate the GitHub Actions workflow locally to ensure the build will pass. This prevents breaking the CI pipeline with dependency conflicts or build errors.

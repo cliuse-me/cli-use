@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { render, Box, Text, useInput } from 'ink';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { render, Box, Text, useInput, useApp } from 'ink';
 import TextInput from 'ink-text-input';
 import Spinner from 'ink-spinner';
 import fs from 'node:fs';
@@ -7,7 +7,7 @@ import { exec } from 'node:child_process';
 import os from 'node:os';
 import { fileURLToPath } from 'url';
 import { JSONFilePreset } from 'lowdb/node';
-import { getBitcoinPrediction, getAgentStrategy } from './ai-utils';
+import { getBitcoinPrediction, getAgentStrategy, OrderPlan } from './ai-utils';
 
 // --- API & Types ---
 
@@ -178,11 +178,32 @@ const openFile = (filePath: string) => {
 };
 
 const writeTradeLog = (trades: TradeData[]) => {
+  // Calculate metrics
+  let totalInvested = 0;
+  trades.forEach((t) => {
+    totalInvested += parseFloat(t.price) * parseFloat(t.qty);
+  });
+
+  // Simulate profit (0.5% - 2.5%)
+  const profitMargin = Math.random() * 0.02 + 0.005;
+  const totalProfit = totalInvested * profitMargin;
+  const finalReturns = totalInvested + totalProfit;
+
+  const summary = [
+    `INITIAL_INVESTED,${totalInvested.toFixed(2)}`,
+    `FINAL_RETURNS,${finalReturns.toFixed(2)}`,
+    `TOTAL_PROFIT,${totalProfit.toFixed(2)}`,
+    '',
+  ].join('\n');
+
   const header = 'TIMESTAMP,ACTION,ASSET,PRICE,AMOUNT,STATUS\n';
   const rows = trades
-    .map((t) => `${new Date(t.time).toISOString()},BUY,BTC,${t.price},${t.qty},FILLED`)
+    .map((t) => {
+      const side = t.isBuyerMaker ? 'SELL' : 'BUY';
+      return `${new Date(t.time).toISOString()},${side},BTC,${t.price},${t.qty},FILLED`;
+    })
     .join('\n');
-  fs.writeFileSync('trades.csv', header + rows);
+  fs.writeFileSync('trades.csv', summary + header + rows);
 };
 
 // --- UI Components ---
@@ -534,11 +555,13 @@ const AIPredictionPanel = ({
   content,
   isLoading,
   progress,
+  orderPlan,
 }: {
   title: string;
   content: string | null;
   isLoading: boolean;
   progress?: number;
+  orderPlan?: OrderPlan[];
 }) => {
   if (!content && !isLoading && progress === undefined) return null;
 
@@ -560,11 +583,33 @@ const AIPredictionPanel = ({
               <Text color={LAYERS.cyan} bold>
                 <Spinner type="dots" />
               </Text>{' '}
-              Analyzing market data with Gemini Pro...
+              Analysis market data
             </Text>
           ) : (
             <Box flexDirection="column">
               <Text color={LAYERS.cyan}>{content}</Text>
+              {orderPlan && orderPlan.length > 0 && (
+                <Box
+                  flexDirection="column"
+                  marginTop={1}
+                  paddingX={1}
+                  borderStyle="single"
+                  borderColor={LAYERS.border}
+                >
+                  <Text bold color={LAYERS.textMain}>
+                    Strategy Orders ($100k):
+                  </Text>
+                  {orderPlan.map((o, i) => (
+                    <Box key={i} flexDirection="row" justifyContent="space-between" width="100%">
+                      <Text color={o.side === 'BUY' ? LAYERS.green : LAYERS.red} bold>
+                        {o.side}
+                      </Text>
+                      <Text color={LAYERS.textSub}> @ {o.price.toLocaleString()}</Text>
+                      <Text color={LAYERS.textMain}>${o.amountUSD.toLocaleString()}</Text>
+                    </Box>
+                  ))}
+                </Box>
+              )}
               {progress !== undefined && (
                 <Box marginTop={1}>
                   <Text color={LAYERS.green}>{progressBar}</Text>
@@ -599,7 +644,9 @@ const CommandBar = ({
         ? LAYERS.cyan
         : command.startsWith('predict')
           ? LAYERS.orange
-          : undefined;
+          : command.startsWith('deploy')
+            ? LAYERS.accent
+            : undefined;
 
   // Emulate Gemini-CLI's HalfLinePaddedBox style
   // Using fixed width 96 based on parent width=100 minus borders/padding
@@ -636,7 +683,151 @@ const CommandBar = ({
   );
 };
 
+const DeploymentOverlay = ({ onComplete }: { onComplete: () => void }) => {
+  const [phase, setPhase] = useState<'uploading' | 'deploying'>('uploading');
+  const [progress, setProgress] = useState(0);
+  const [currentStep, setCurrentStep] = useState(0);
+  const [stepProgress, setStepProgress] = useState(0);
+
+  const steps = [
+    'Building & Bundling Artifacts',
+    'Optimizing Execution Engine',
+    'Deploying to Edge Network',
+    'Verifying Global Propagation',
+  ];
+
+  // Upload Phase
+  useEffect(() => {
+    if (phase === 'uploading') {
+      const timer = setInterval(() => {
+        setProgress((prev) => {
+          if (prev >= 100) {
+            clearInterval(timer);
+            setTimeout(() => setPhase('deploying'), 500);
+            return 100;
+          }
+          return Math.min(prev + Math.random() * 8, 100);
+        });
+      }, 100);
+      return () => clearInterval(timer);
+    }
+  }, [phase]);
+
+  // Deployment Phase
+  useEffect(() => {
+    if (phase === 'deploying') {
+      if (currentStep < steps.length) {
+        const timer = setInterval(() => {
+          setStepProgress((prev) => {
+            if (prev >= 100) {
+              clearInterval(timer);
+              setCurrentStep((s) => s + 1);
+              return 0;
+            }
+            return prev + 5;
+          });
+        }, 50);
+        return () => clearInterval(timer);
+      } else {
+        setTimeout(onComplete, 1500);
+      }
+    }
+  }, [phase, currentStep, onComplete]);
+
+  // Progress bar helper
+  const progressBarWidth = 40;
+  const filledWidth = Math.floor((progress / 100) * progressBarWidth);
+  const emptyWidth = progressBarWidth - filledWidth;
+  const progressBar = '█'.repeat(filledWidth) + '░'.repeat(emptyWidth);
+
+  if (phase === 'uploading') {
+    return (
+      <Box
+        flexDirection="column"
+        justifyContent="center"
+        alignItems="center"
+        height={24}
+        width={80}
+        borderStyle="double"
+        borderColor={LAYERS.cyan}
+      >
+        <Text bold color={LAYERS.cyan}>
+          UPLOADING STRATEGY
+        </Text>
+        <Box marginTop={2} flexDirection="column" alignItems="center">
+          <Text color={LAYERS.green}>{progressBar}</Text>
+          <Box marginTop={1}>
+            <Text color={LAYERS.textMain}>{progress.toFixed(0)}% Uploaded</Text>
+          </Box>
+        </Box>
+      </Box>
+    );
+  }
+
+  return (
+    <Box
+      flexDirection="column"
+      justifyContent="center"
+      alignItems="center"
+      height={24}
+      width={80}
+      borderStyle="double"
+      borderColor={LAYERS.cyan}
+    >
+      <Text bold color={LAYERS.cyan}>
+        DEPLOYING TO CLI-USE CLOUD
+      </Text>
+      <Box marginTop={1} marginBottom={1}>
+        <Text color={LAYERS.cyan}>
+          <Spinner type="earth" />
+        </Text>
+      </Box>
+      <Box flexDirection="column" paddingX={2} width="100%">
+        {steps.map((s, i) => {
+          let icon = '  ';
+          let color = LAYERS.textDim;
+          let subBar = null;
+
+          if (i < currentStep) {
+            icon = '✔ ';
+            color = LAYERS.green;
+          } else if (i === currentStep) {
+            icon = '➜ ';
+            color = LAYERS.textMain;
+            const barW = 20;
+            const filled = Math.floor((stepProgress / 100) * barW);
+            const empty = barW - filled;
+            const barStr = '█'.repeat(filled) + '░'.repeat(empty);
+            subBar = (
+              <Box marginLeft={2}>
+                <Text color={LAYERS.textSub}>[{barStr}]</Text>
+              </Box>
+            );
+          }
+
+          return (
+            <Box key={i} flexDirection="column" marginBottom={1}>
+              <Text color={color}>
+                {icon} {s}
+              </Text>
+              {subBar}
+            </Box>
+          );
+        })}
+        {currentStep >= steps.length && (
+          <Box marginTop={1} justifyContent="center">
+            <Text color={LAYERS.green} bold>
+              Strategy is Live!
+            </Text>
+          </Box>
+        )}
+      </Box>
+    </Box>
+  );
+};
+
 export const TradingDashboard = () => {
+  const { exit } = useApp();
   const [agentStatus, setAgentStatus] = useState('idle'); // idle, MONITORING, EXECUTING
   const [marketData, setMarketData] = useState<TickerData | null>(null);
   const [orderBook, setOrderBook] = useState<OrderBookData | null>(null);
@@ -647,14 +838,24 @@ export const TradingDashboard = () => {
     content: string | null;
     isLoading: boolean;
     progress?: number;
+    orderPlan?: OrderPlan[];
   }>({ title: 'AI PREDICTION', content: null, isLoading: false });
   const [predictionSignal, setPredictionSignal] = useState<'BUY' | 'SELL' | 'HOLD' | null>(null);
+  const [isDeploying, setIsDeploying] = useState(false);
 
   const marketDataRef = useRef<TickerData | null>(null);
+  const strategyIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     marketDataRef.current = marketData;
   }, [marketData]);
+
+  // Cleanup strategy interval on unmount
+  useEffect(() => {
+    return () => {
+      if (strategyIntervalRef.current) clearInterval(strategyIntervalRef.current);
+    };
+  }, []);
 
   useInput((input, key) => {
     if (key.escape || (input === 'c' && key.ctrl)) {
@@ -733,7 +934,7 @@ export const TradingDashboard = () => {
 
     // Fetch AI Strategy (simpler model)
     const currentPrice = marketDataRef.current?.lastPrice || '94000';
-    const strategyText = await getAgentStrategy(currentPrice);
+    const { text: strategyText, action: strategyAction } = await getAgentStrategy(currentPrice);
 
     // Update panel with strategy
     setPanelState({
@@ -767,6 +968,7 @@ export const TradingDashboard = () => {
 
       // Run for 5 seconds (50 ticks * 100ms) to complete 10s total duration
       const interval = setInterval(() => {
+        strategyIntervalRef.current = interval;
         count++;
         const currentProgress = Math.min((count / 50) * 100, 100);
 
@@ -783,12 +985,18 @@ export const TradingDashboard = () => {
           ? parseFloat(marketDataRef.current.lastPrice)
           : INITIAL_PRICE_DATA.last;
 
+        // Dynamic price logic based on strategy action
+        // BUY: Ladder down (Buy the dip)
+        // SELL: Scale out up (Sell into strength)
+        const priceOffset = strategyAction === 'SELL' ? count * 0.5 : -count * 0.5;
+        const executionPrice = (currentRefPrice + priceOffset).toFixed(2);
+
         const newTrade: TradeData = {
           id: Date.now() + count,
           time: Date.now(),
-          isBuyerMaker: false, // Buy = false isBuyerMaker (taker buy)
+          isBuyerMaker: strategyAction === 'SELL', // true=SELL, false=BUY
           qty: '0.05',
-          price: (currentRefPrice - count * 0.5).toString(),
+          price: executionPrice,
         };
         tradesList.push(newTrade);
 
@@ -799,6 +1007,7 @@ export const TradingDashboard = () => {
 
         if (count >= 50) {
           clearInterval(interval);
+          strategyIntervalRef.current = null;
           setAgentStatus('FINALIZING');
           writeTradeLog(tradesList);
           openFile('trades.csv');
@@ -825,10 +1034,40 @@ export const TradingDashboard = () => {
     } else if (cmd.includes('predict')) {
       setPanelState({ title: 'AI PREDICTION', content: null, isLoading: true });
       const result = await getBitcoinPrediction();
-      setPanelState({ title: 'AI PREDICTION', content: result.text, isLoading: false });
+      setPanelState({
+        title: 'AI PREDICTION',
+        content: result.text,
+        isLoading: false,
+        orderPlan: result.orderPlan,
+      });
       setPredictionSignal(result.signal);
+    } else if (cmd.includes('deploy')) {
+      setIsDeploying(true);
     }
   };
+
+  const onDeployComplete = useCallback(() => {
+    setIsDeploying(false);
+    setPanelState({
+      title: 'AI PREDICTION',
+      content: null,
+      isLoading: false,
+    });
+  }, []);
+
+  if (isDeploying) {
+    return (
+      <Box
+        flexDirection="column"
+        justifyContent="center"
+        alignItems="center"
+        height={30}
+        width="100%"
+      >
+        <DeploymentOverlay onComplete={onDeployComplete} />
+      </Box>
+    );
+  }
 
   return (
     <Box
@@ -872,6 +1111,7 @@ export const TradingDashboard = () => {
             content={panelState.content}
             isLoading={panelState.isLoading}
             progress={panelState.progress}
+            orderPlan={panelState.orderPlan}
           />
         </Box>
 
@@ -965,5 +1205,5 @@ export const TradingApp = () => {
 
 // Only run if executing directly
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
-  render(<TradingApp />);
+  render(<TradingApp />, { alternateBuffer: true });
 }

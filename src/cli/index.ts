@@ -62,7 +62,7 @@ program
   .description('Launch the Trading Terminal Demo')
   .action(() => {
     console.clear();
-    render(React.createElement(TradingApp));
+    render(React.createElement(TradingApp), { alternateBuffer: true });
   });
 
 program.option('-d, --demo', 'Run the cli-use demo').action(() => {
