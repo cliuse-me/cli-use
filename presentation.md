@@ -98,23 +98,6 @@ graph LR
 ---
 
 
-## ⚡ Introducing CLI use: The Ecosystem
-
-And that's what I'm building at CLI use. Tools for creation, management, refining and deployment of these applications.
-
-```mermaid
-graph LR
-    Logo((CLI use))
-    Logo --> Create[Creation]
-    Logo --> Manage[Management]
-    Logo --> Refine[Refining]
-    Logo --> Deploy[Deployment]
-
-    Create & Manage & Refine & Deploy --> Ecosystem[Full Lifecycle Support]
-```
-
----
-
 
 ## 🔓 Unlocking True Productivity
 
