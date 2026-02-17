@@ -1,0 +1,37 @@
+1. And AI doesn't seem to
+be even close to completly create
+a complex, scalable application
+
+2. The reason for this is context
+
+3. Bigger the application more context it
+has.
+
+4. But what if the future of software is 
+being simpler, smaller and replacable?
+
+5. That's what i'm trying to solve with CLI use
+
+6. shipping via terminal allows you to get rid
+of a ton of unecessary boilerplate, making 
+everything simpler
+
+7. Not only this, but it unlock true 
+AI native experience.
+
+8. Giving a machine for your agents allow them
+to learn, evolve and harness computer resources
+entirelly.
+
+9. Instead of spamming them for a short live cycle, 
+you allow them 
+to have a full life
+
+10. And that's why applications like Clawde
+bot, open claw and Claude code are taking
+over
+
+11. And thats CLI use's objective: 
+allow everyone to ship 
+TRUE AI-native applications.
+

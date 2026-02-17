@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Box, Text, useInput, useApp } from 'ink';
+import { Box, Text, useInput, useApp, useStdout } from 'ink';
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { generateText } from 'ai';
 import dotenv from 'dotenv';
@@ -57,6 +57,20 @@ const getGoogleProvider = () => {
 
 // --- Components ---
 
+const InputBar = ({ input }: { input: string }) => {
+  const { stdout } = useStdout();
+  const width = stdout?.columns ?? 80;
+  const content = `> ${input}_`;
+  const remainder = content.length % width;
+  const paddingLength = remainder === 0 ? 0 : width - remainder;
+
+  return (
+    <Text backgroundColor="white" color="black">
+      {content + ' '.repeat(paddingLength)}
+    </Text>
+  );
+};
+
 const Splash = ({ input }: { input: string }) => {
   return (
     <Box flexDirection="column" alignItems="center" height="100%" justifyContent="space-between">
@@ -75,10 +89,8 @@ const Splash = ({ input }: { input: string }) => {
       </Box>
 
       {/* Input */}
-      <Box width="100%" borderStyle="single" borderColor="gray" paddingX={1} marginBottom={1}>
-        <Text color="white" bold>
-          {'>'} {input}_
-        </Text>
+      <Box width="100%" marginBottom={1}>
+        <InputBar input={input} />
       </Box>
 
       {/* Footer */}
@@ -125,10 +137,8 @@ const Chat = ({ messages, input }: { messages: Message[]; input: string }) => {
       </Box>
 
       {/* Input Area */}
-      <Box borderStyle="single" borderColor="gray" paddingX={1} marginTop={1}>
-        <Text color="white" bold>
-          {'>'} {input}_
-        </Text>
+      <Box marginTop={1}>
+        <InputBar input={input} />
       </Box>
     </Box>
   );
