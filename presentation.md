@@ -97,21 +97,6 @@ graph LR
 
 ---
 
-## 🔓 Unlocking True Productivity
-
-It ends up costing a lot of money, time and efficiency. Real AI productivity will only be unlocked when we have the proper infrastructure and tools to deal with that.
-
-```mermaid
-graph LR
-    Cur[High Cost + Time] -->|Causes| Block[Blocked Prod.]
-    Infra[New Infra] -->|Unlocks| True[True AI Prod.]
-    True -->|Result| Agents[Scalable Agents]
-
-    style True fill:#9f9
-    style Block fill:#ccc
-```
-
----
 
 ## ⚡ Introducing CLI use: The Ecosystem
 
@@ -126,6 +111,23 @@ graph LR
     Logo --> Deploy[Deployment]
 
     Create & Manage & Refine & Deploy --> Ecosystem[Full Lifecycle Support]
+```
+
+---
+
+
+## 🔓 Unlocking True Productivity
+
+It ends up costing a lot of money, time and efficiency. Real AI productivity will only be unlocked when we have the proper infrastructure and tools to deal with that.
+
+```mermaid
+graph LR
+    Cur[High Cost + Time] -->|Causes| Block[Blocked Prod.]
+    Infra[New Infra] -->|Unlocks| True[True AI Prod.]
+    True -->|Result| Agents[Scalable Agents]
+
+    style True fill:#9f9
+    style Block fill:#ccc
 ```
 
 ---
