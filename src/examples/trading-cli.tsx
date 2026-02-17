@@ -441,14 +441,7 @@ const OrderBook = ({ depth }: { depth?: OrderBookData | null }) => {
   return (
     <Layer>
       <LayerHeader title="ORDER BOOK" rightLabel="depth" />
-      <Box
-        flexDirection="row"
-        paddingX={1}
-        borderBottom
-        borderStyle="single"
-        borderColor={LAYERS.border}
-        backgroundColor={'#333'}
-      >
+      <Box flexDirection="column" width="100%" marginTop={1}>
         <Box width="25%">
           <Text color={LAYERS.textSub} bold>
             BID
@@ -492,68 +485,108 @@ const OrderBook = ({ depth }: { depth?: OrderBookData | null }) => {
   );
 };
 
+const CommandBar = ({
+  onCommand,
+  status = 'idle',
+  focused = false,
+  placeholder,
+}: {
+  onCommand: (cmd: string) => void;
+  status?: string;
+  focused?: boolean;
+  placeholder?: string;
+}) => {
+  const [command, setCommand] = useState('');
+
+  const handleSubmit = (value: string) => {
+    onCommand(value);
+    setCommand('');
+  };
+
+  return (
+    <Box flexDirection="row" width="100%" alignItems="center">
+      <Box
+        flexGrow={1}
+        borderStyle="round"
+        borderColor={focused ? LAYERS.accent : LAYERS.border}
+        backgroundColor="#2a2a2a"
+        paddingX={1}
+      >
+        <Text color="white" bold>
+          {status === 'EXECUTING' ? '!' : '>'}{' '}
+        </Text>
+        <Text color="white" bold>
+          <TextInput
+            value={command}
+            onChange={setCommand}
+            onSubmit={handleSubmit}
+            placeholder={placeholder || 'Talk to AI...'}
+            focus={focused}
+          />
+        </Text>
+      </Box>
+      <Box marginLeft={1}>
+        <Text color={status === 'idle' ? LAYERS.textDim : LAYERS.green}>
+          {status === 'idle' ? '' : status}
+        </Text>
+      </Box>
+    </Box>
+  );
+};
+
 const MarketTrades = ({ trades }: { trades?: TradeData[] | null }) => {
+  const recentTrades = trades ? trades.slice(0, 10) : [];
+
   return (
     <Layer>
       <LayerHeader title="MARKET TRADES" rightLabel="recent" />
-      <Box
-        flexDirection="row"
-        paddingX={1}
-        borderBottom
-        borderStyle="single"
-        borderColor={LAYERS.border}
-      >
-        <Box width="30%">
-          <Text color={LAYERS.textSub} bold>
-            TIME
-          </Text>
-        </Box>
-        <Box width="40%" alignItems="flex-end">
-          <Text color={LAYERS.textSub} bold>
-            PRICE
-          </Text>
-        </Box>
-        <Box width="30%" alignItems="flex-end">
-          <Text color={LAYERS.textSub} bold>
-            QTY
-          </Text>
-        </Box>
-      </Box>
-      <Box flexDirection="column" paddingX={0}>
-        {trades && trades.length > 0 ? (
-          trades.slice(0, 5).map((t, i) => (
-            <Box key={i} flexDirection="row">
-              <Box width="30%">
-                <Text color={LAYERS.textDim}>
-                  {new Date(t.time).toLocaleTimeString('en-US', {
-                    hour12: false,
-                    hour: '2-digit',
-                    minute: '2-digit',
-                    second: '2-digit',
-                  })}
-                </Text>
-              </Box>
-              <Box width="40%" alignItems="flex-end">
-                <Text color={t.isBuyerMaker ? LAYERS.red : LAYERS.green}>
-                  {parseFloat(t.price).toLocaleString('en-US', { minimumFractionDigits: 2 })}
-                </Text>
-              </Box>
-              <Box width="30%" alignItems="flex-end">
-                <Text color={LAYERS.textMain}>{parseFloat(t.qty).toFixed(4)}</Text>
-              </Box>
-            </Box>
-          ))
-        ) : (
-          <Box>
-            <Text color={LAYERS.textDim}>Waiting for trades...</Text>
+      <Box flexDirection="column" width="100%" marginTop={1}>
+        <Box flexDirection="row" paddingX={1}>
+          <Box width="30%">
+            <Text color={LAYERS.textSub} bold>
+              PRICE
+            </Text>
           </Box>
-        )}
+          <Box width="30%" alignItems="flex-end">
+            <Text color={LAYERS.textSub} bold>
+              SIZE
+            </Text>
+          </Box>
+          <Box width="40%" alignItems="flex-end">
+            <Text color={LAYERS.textSub} bold>
+              TIME
+            </Text>
+          </Box>
+        </Box>
+        {recentTrades.map((t, i) => (
+          <Box key={i} flexDirection="row" paddingX={1}>
+            <Box width="30%">
+              <Text color={t.isBuyerMaker ? LAYERS.red : LAYERS.green}>
+                {parseFloat(t.price).toFixed(2)}
+              </Text>
+            </Box>
+            <Box width="30%" alignItems="flex-end">
+              <Text color={LAYERS.textMain}>{parseFloat(t.qty).toFixed(4)}</Text>
+            </Box>
+            <Box width="40%" alignItems="flex-end">
+              <Text color={LAYERS.textDim}>{new Date(t.time).toLocaleTimeString()}</Text>
+            </Box>
+          </Box>
+        ))}
       </Box>
     </Layer>
   );
 };
 
-// --- Main App ---
+interface AIPredictionPanelProps {
+  title: string;
+  content: string | null;
+  isLoading: boolean;
+  progress?: number;
+  orderPlan?: OrderPlan[];
+  selectionItems?: { label: string; value: string }[];
+  onSelect: (item: { label: string; value: string }) => void;
+}
 
 const AIPredictionPanel = ({
   title,
@@ -563,144 +596,67 @@ const AIPredictionPanel = ({
   orderPlan,
   selectionItems,
   onSelect,
-}: {
-  title: string;
-  content: string | null;
-  isLoading: boolean;
-  progress?: number;
-  orderPlan?: OrderPlan[];
-  selectionItems?: { label: string; value: string }[];
-  onSelect?: (item: { label: string; value: string }) => void;
-}) => {
-  if (!content && !isLoading && progress === undefined && !selectionItems) return null;
-
-  let progressBar = '';
-  if (progress !== undefined) {
-    const progressBarWidth = 40;
-    const filledWidth = Math.floor((progress / 100) * progressBarWidth);
-    const emptyWidth = progressBarWidth - filledWidth;
-    progressBar = '█'.repeat(filledWidth) + '░'.repeat(emptyWidth);
-  }
-
+}: AIPredictionPanelProps) => {
   return (
-    <Layer title={title} paddingX={0}>
-      <Box flexDirection="row" backgroundColor="#222222">
-        <Box width={1} backgroundColor={LAYERS.orange} />
-        <Box paddingX={1} paddingY={0} flexGrow={1} flexDirection="column">
-          {isLoading ? (
-            <Text color={LAYERS.cyan}>
-              <Text color={LAYERS.cyan} bold>
-                <Spinner type="dots" />
-              </Text>{' '}
-              Analysis market data
-            </Text>
-          ) : (
-            <Box flexDirection="column">
-              {content && <Text color={LAYERS.cyan}>{content}</Text>}
+    <Layer>
+      <LayerHeader title={title.toUpperCase()} rightLabel={isLoading ? 'processing' : 'ready'} />
+      <Box flexDirection="column" padding={1}>
+        {content && (
+          <Box marginBottom={1}>
+            <Text color={LAYERS.textMain}>{content}</Text>
+          </Box>
+        )}
 
-              {selectionItems && onSelect && (
-                <Box marginTop={1} flexDirection="column">
-                  <SelectInput items={selectionItems} onSelect={onSelect} />
-                </Box>
-              )}
-
-              {orderPlan && orderPlan.length > 0 && (
-                <Box
-                  flexDirection="column"
-                  marginTop={1}
-                  paddingX={1}
-                  borderStyle="single"
-                  borderColor={LAYERS.border}
-                >
-                  <Text bold color={LAYERS.textMain}>
-                    Strategy Orders ($100k):
-                  </Text>
-                  {orderPlan.map((o, i) => (
-                    <Box key={i} flexDirection="row" justifyContent="space-between" width="100%">
-                      <Text color={o.side === 'BUY' ? LAYERS.green : LAYERS.red} bold>
-                        {o.side}
-                      </Text>
-                      <Text color={LAYERS.textSub}> @ {o.price.toLocaleString()}</Text>
-                      <Text color={LAYERS.textMain}>${o.amountUSD.toLocaleString()}</Text>
-                    </Box>
-                  ))}
-                </Box>
-              )}
-              {progress !== undefined && (
-                <Box marginTop={1}>
-                  <Text color={LAYERS.green}>{progressBar}</Text>
-                </Box>
-              )}
+        {isLoading && progress !== undefined ? (
+          <Box flexDirection="column" marginBottom={1}>
+            <Text color={LAYERS.textDim}>Running analysis...</Text>
+            <Box width="100%" marginTop={1}>
+              <Text color={LAYERS.green}>
+                {'█'.repeat(Math.floor((progress / 100) * 40))}
+                {'░'.repeat(40 - Math.floor((progress / 100) * 40))} {Math.floor(progress)}%
+              </Text>
             </Box>
-          )}
-        </Box>
+          </Box>
+        ) : isLoading ? (
+          <Box flexDirection="row" marginBottom={1}>
+            <Text color={LAYERS.green}>
+              <Spinner type="dots" />
+            </Text>
+            <Text color={LAYERS.textDim}> Analyzing market data...</Text>
+          </Box>
+        ) : null}
+
+        {!isLoading && selectionItems && selectionItems.length > 0 && (
+          <Box flexDirection="column" gap={1}>
+            <SelectInput items={selectionItems} onSelect={onSelect} />
+          </Box>
+        )}
+
+        {orderPlan && orderPlan.length > 0 && (
+          <Box
+            flexDirection="column"
+            marginTop={1}
+            borderStyle="round"
+            borderColor={LAYERS.border}
+            padding={1}
+          >
+            <Text bold color={LAYERS.textMain}>
+              EXECUTING STRATEGY:
+            </Text>
+            {orderPlan.map((step, i) => (
+              <Box key={i} flexDirection="row" justifyContent="space-between" marginTop={1}>
+                <Text color={step.side === 'BUY' ? LAYERS.green : LAYERS.red} bold>
+                  {step.side}
+                </Text>
+                <Text color={LAYERS.textMain}>
+                  ${step.amountUSD} @ {step.price}
+                </Text>
+              </Box>
+            ))}
+          </Box>
+        )}
       </Box>
     </Layer>
-  );
-};
-
-const CommandBar = ({
-  onCommand,
-  status,
-  focused = true,
-  placeholder,
-}: {
-  onCommand: (cmd: string) => void;
-  status: string;
-  focused?: boolean;
-  placeholder?: string;
-}) => {
-  const [command, setCommand] = useState('');
-
-  const handleSubmit = (val: string) => {
-    onCommand(val);
-    setCommand('');
-  };
-
-  const commandColor =
-    command.startsWith('agents') || command.startsWith('agent')
-      ? LAYERS.yellow
-      : command.startsWith('ai')
-        ? LAYERS.cyan
-        : command.startsWith('predict')
-          ? LAYERS.orange
-          : command.startsWith('deploy')
-            ? LAYERS.accent
-            : undefined;
-
-  // Emulate Gemini-CLI's HalfLinePaddedBox style
-  // Using fixed width 96 based on parent width=100 minus borders/padding
-  const barWidth = 96;
-
-  return (
-    <Box flexDirection="column" width="100%">
-      {/* Top half-line padding */}
-      <Box width="100%">
-        <Text color={LAYERS.commandBar}>{'▄'.repeat(barWidth)}</Text>
-      </Box>
-
-      <Box flexDirection="row" paddingX={1} backgroundColor={LAYERS.commandBar} width="100%">
-        <Text color={LAYERS.accent}>{status === 'EXECUTING' ? '!' : '>'} </Text>
-        <Text color={commandColor}>
-          <TextInput
-            value={command}
-            onChange={setCommand}
-            onSubmit={handleSubmit}
-            placeholder={placeholder || "Type 'agent' or 'predict'..."}
-            focus={focused}
-          />
-        </Text>
-        <Box flexGrow={1} />
-        <Text color={status === 'idle' ? LAYERS.textDim : LAYERS.green}>
-          {status === 'idle' ? '' : status}
-        </Text>
-      </Box>
-
-      {/* Bottom half-line padding */}
-      <Box width="100%">
-        <Text color={LAYERS.commandBar}>{'▀'.repeat(barWidth)}</Text>
-      </Box>
-    </Box>
   );
 };
 
@@ -999,7 +955,7 @@ export const TradingDashboard = () => {
     });
 
     setAgentStatus('MONITORING');
-    setTradeStats({ count: 0, vol: 0 });
+    // setTradeStats({ count: 0, vol: 0 }); // Keep stats accumulating
     const tradesList: TradeData[] = [];
     let count = 0;
 
@@ -1017,7 +973,7 @@ export const TradingDashboard = () => {
       setPanelState({
         title: title,
         content: `Strategy: ${strategyText}\n\nAgent is testing the strategy...`,
-        isLoading: false,
+        isLoading: true,
         progress: 0,
       });
 
@@ -1031,8 +987,17 @@ export const TradingDashboard = () => {
           setPanelState({
             title: title,
             content: `Strategy: ${strategyText}\n\nAgent is testing the strategy...`,
-            isLoading: false,
+            isLoading: true,
             progress: currentProgress,
+          });
+        } else {
+          clearInterval(interval);
+          setAgentStatus('MONITORING');
+          setPanelState({
+            title: title,
+            content: `Strategy: ${strategyText}\n\nExecution Complete. +${(Math.random() * 5 + 2).toFixed(2)}% PnL`,
+            isLoading: false,
+            // progress: 100, // Hide progress bar
           });
         }
 
@@ -1084,18 +1049,21 @@ export const TradingDashboard = () => {
   };
 
   const handleCommand = async (cmd: string) => {
+    // 1. Global Commands take precedence
     if (cmd.includes('deploy')) {
       setIsDeploying(true);
       return;
     }
 
-    // If an agent is selected, assume this is a prompt to the agent
-    if (activeAgent) {
-      runAgentStrategy(activeAgent);
-      return;
-    }
-
     if (cmd.includes('agent') || cmd.includes('strategy')) {
+      // If we already have an active agent, just run the strategy
+      // unless the user explicitly asks to "select" or "change"
+      if (activeAgent && !cmd.includes('select') && !cmd.includes('change')) {
+        runAgentStrategy(activeAgent);
+        return;
+      }
+
+      setActiveAgent(null); // Clear context
       setIsSelectingAgent(true);
       setPanelState({
         title: 'AGENT MARKETPLACE',
@@ -1103,7 +1071,12 @@ export const TradingDashboard = () => {
         isLoading: false,
         selectionItems: agentOptions,
       });
-    } else if (cmd.includes('predict')) {
+      return;
+    }
+
+    if (cmd.includes('predict')) {
+      // setActiveAgent(null); // Optional: keep context or clear it? Clearing for clean slate.
+      setIsSelectingAgent(false);
       setPanelState({ title: 'AI PREDICTION', content: null, isLoading: true });
       const result = await getBitcoinPrediction();
       setPanelState({
@@ -1112,9 +1085,12 @@ export const TradingDashboard = () => {
         isLoading: false,
         orderPlan: result.orderPlan,
       });
-    } else if (cmd.includes('deploy')) {
-      setIsDeploying(true);
-    } else if (cmd.includes('train') || cmd.includes('sandbox')) {
+      return;
+    }
+
+    if (cmd.includes('train') || cmd.includes('sandbox')) {
+      setActiveAgent(null);
+      setIsSelectingAgent(false);
       setPanelState({
         title: 'AGENT FOUNDRY',
         content: null,
@@ -1128,7 +1104,7 @@ export const TradingDashboard = () => {
         setPanelState({
           title: 'TRAINING AGENT [SANDBOX]',
           content: `Running Synthetic Scenario: "Flash Crash 2024"\nEpoch: ${epoch}/20\nReward Function: +${(100 + epoch * 2.5).toFixed(1)}%`,
-          isLoading: false,
+          isLoading: true,
           progress: progress,
         });
 
@@ -1142,6 +1118,14 @@ export const TradingDashboard = () => {
           });
         }
       }, 200);
+      return;
+    }
+
+    // 2. Context-specific commands (Active Agent)
+    // Only if no global command matched
+    if (activeAgent) {
+      runAgentStrategy(activeAgent);
+      return;
     }
   };
 
@@ -1169,13 +1153,7 @@ export const TradingDashboard = () => {
   }
 
   return (
-    <Box
-      flexDirection="column"
-      padding={1}
-      borderStyle="round"
-      borderColor={LAYERS.border}
-      width={100}
-    >
+    <Box flexDirection="column" width="100%" borderStyle="single" borderColor="white">
       {/* Top Bar */}
       <Box flexDirection="row" justifyContent="space-between" paddingX={1} marginBottom={1}>
         <Text bold color={LAYERS.textMain}>

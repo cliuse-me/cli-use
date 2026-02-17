@@ -12,3 +12,4 @@ trades.csv
 trading-db.json
 trading.db
 *.tmp
+.npmrc
