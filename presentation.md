@@ -80,36 +80,19 @@ graph LR
     style Agent fill:#bfb
 ```
 
----
+## ⚡ Introducing CLI use: The Ecosystem
 
-## ☁️ The Infrastructure Shift
-
-AI native applications need to have a machine to live, time to learn, file systems to interact. And it completely changes the way we interact with AI and cloud services.
+And that's what I'm building at CLI use. Tools for creation, management, refining and deployment of these applications.
 
 ```mermaid
 graph LR
-    Core((AI Native App)) <-->|IO| FS[FileSystem]
-    Core <-->|Uses| Time[Compute]
-    Core <-->|Lives| Env[VM/Container]
-    Cloud[Legacy Cloud] -.->|Shift| New[Agentic Cloud]
-    New --> Core
-```
+    Logo((CLI use))
+    Logo --> Create[Creation]
+    Logo --> Manage[Management]
+    Logo --> Refine[Refining]
+    Logo --> Deploy[Deployment]
 
----
-
-## 🚧 Current Pain Points
-
-Random processes, lack of version control, memory management, distribution are only a few of the problems that we need to face today.
-
-```mermaid
-graph LR
-    Prob[Pain Points] -->|No| Random[Control]
-    Prob -->|No| Ver[Version Ctrl]
-    Prob -->|Yes| Leaks[Context Leaks]
-    Prob -->|Yes| Dist[Dist. Hell]
-
-    Random & Ver & Leaks & Dist --> Fail((Failure))
-    style Fail fill:#ff9999
+    Create & Manage & Refine & Deploy --> Ecosystem[Full Lifecycle Support]
 ```
 
 ---
