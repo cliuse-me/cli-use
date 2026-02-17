@@ -38,7 +38,7 @@ export const getBitcoinPrediction = async (): Promise<PredictionResult> => {
       maxSteps: 5,
       system: 'You are a crypto analyst managing a $100,000 portfolio.',
       prompt:
-        'Search for the latest current Bitcoin price, recent volatility, and immediate news. Based on this, predict the price for the next hour.\n\n1. Provide a VERY concise 1-sentence reasoning (max 150 chars).\n2. Create a "Order Plan" for the $100,000 capital. Define 3-5 price levels (trenches) to enter or exit positions.\n3. CRITICAL: Output a JSON block at the end strictly following this schema: \n```json\n{ "signal": "BUY"|"SELL"|"HOLD", "orders": [{ "price": 95000, "amountUSD": 20000, "side": "BUY" }] }\n```',
+        'Search for the latest current Bitcoin price, recent volatility, and immediate news. Based on this, predict the price for the next hour.\n\n1. Provide a VERY concise 1-sentence reasoning (max 150 chars).\n2. Create a "Order Plan" for the $100,000 capital. Define EXACTLY 4 price levels (trenches) to enter or exit positions. At least one order MUST be a "SELL" order to hedge or take profit.\n3. CRITICAL: Output a JSON block at the end strictly following this schema: \n```json\n{ "signal": "BUY"|"SELL"|"HOLD", "orders": [{ "price": 95000, "amountUSD": 20000, "side": "BUY" }] }\n```',
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } as any);
 
