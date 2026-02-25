@@ -803,6 +803,130 @@ const DeploymentOverlay = ({ onComplete }: { onComplete: () => void }) => {
   );
 };
 
+const MonitoringDashboard = ({
+  onExit,
+  activeAgent,
+}: {
+  onExit: () => void;
+  activeAgent: string | null;
+}) => {
+  const [logs, setLogs] = useState<string[]>([]);
+  const [pnl, setPnl] = useState(0);
+  const [uptime, setUptime] = useState(0);
+
+  useEffect(() => {
+    const t = setInterval(() => setUptime((u) => u + 1), 1000);
+    return () => clearInterval(t);
+  }, []);
+
+  useEffect(() => {
+    const events = [
+      'Analyzing order book depth...',
+      'Evaluating sentiment signals...',
+      'Calculating momentum indicators...',
+      'Risk management check passed.',
+      'Holding position. No action required.',
+      'Adjusting trailing stop...',
+    ];
+    const t = setInterval(() => {
+      setPnl((p) => p + (Math.random() * 5 - 2));
+      setLogs((prev) => {
+        const newLog = `[${new Date().toLocaleTimeString()}] ${events[Math.floor(Math.random() * events.length)]}`;
+        return [...prev, newLog].slice(-8); // Keep last 8 logs
+      });
+    }, 1500);
+    return () => clearInterval(t);
+  }, []);
+
+  const formatUptime = (sec: number) => {
+    const m = Math.floor(sec / 60)
+      .toString()
+      .padStart(2, '0');
+    const s = (sec % 60).toString().padStart(2, '0');
+    return `00:${m}:${s}`;
+  };
+
+  const handleCommand = (cmd: string) => {
+    if (cmd === 'stop' || cmd === 'exit') {
+      onExit();
+    } else {
+      setLogs((prev) =>
+        [...prev, `[USER] Command not recognized in monitoring mode. Type 'stop' to exit.`].slice(
+          -8
+        )
+      );
+    }
+  };
+
+  return (
+    <Box flexDirection="column" width="100%" borderStyle="single" borderColor={LAYERS.cyan}>
+      {/* Header */}
+      <Box
+        flexDirection="row"
+        justifyContent="space-between"
+        paddingX={1}
+        borderBottom
+        borderStyle="single"
+        borderColor={LAYERS.border}
+        marginBottom={1}
+      >
+        <Text bold color={LAYERS.cyan}>
+          PRODUCTION MONITORING - CLI USE VM
+        </Text>
+        <Text color={LAYERS.green} bold>
+          {' '}
+          ● LIVE{' '}
+        </Text>
+      </Box>
+
+      {/* Metrics */}
+      <Box flexDirection="row" paddingX={1} gap={2} marginBottom={1}>
+        <Box flexDirection="column" width="25%">
+          <Text color={LAYERS.textDim}>STRATEGY</Text>
+          <Text color={LAYERS.textMain} bold>
+            {activeAgent || 'Autonomous Agent'}
+          </Text>
+        </Box>
+        <Box flexDirection="column" width="25%">
+          <Text color={LAYERS.textDim}>UPTIME</Text>
+          <Text color={LAYERS.textMain} bold>
+            {formatUptime(uptime)}
+          </Text>
+        </Box>
+        <Box flexDirection="column" width="25%">
+          <Text color={LAYERS.textDim}>TOTAL PnL</Text>
+          <Text color={pnl >= 0 ? LAYERS.green : LAYERS.red} bold>
+            {pnl >= 0 ? '+' : ''}${pnl.toFixed(2)}
+          </Text>
+        </Box>
+        <Box flexDirection="column" width="25%">
+          <Text color={LAYERS.textDim}>HEALTH</Text>
+          <Text color={LAYERS.green} bold>
+            OPTIMAL (CPU 12%)
+          </Text>
+        </Box>
+      </Box>
+
+      {/* Logs */}
+      <Layer title="LIVE EVENT STREAM">
+        <Box flexDirection="column" padding={1} minHeight={10}>
+          {logs.map((log, i) => (
+            <Text key={i} color={log.includes('[USER]') ? LAYERS.yellow : LAYERS.textSub}>
+              {log}
+            </Text>
+          ))}
+          {logs.length === 0 && <Text color={LAYERS.textDim}>Waiting for events...</Text>}
+        </Box>
+      </Layer>
+
+      {/* Command */}
+      <Box marginTop={1}>
+        <CommandBar onCommand={handleCommand} placeholder="Type 'stop' to end monitoring..." />
+      </Box>
+    </Box>
+  );
+};
+
 export const TradingDashboard = () => {
   const [agentStatus, setAgentStatus] = useState('idle'); // idle, MONITORING, EXECUTING
   const [marketData, setMarketData] = useState<TickerData | null>(null);
@@ -832,7 +956,9 @@ export const TradingDashboard = () => {
     selectionItems: agentOptions,
   });
 
-  const [isDeploying, setIsDeploying] = useState(false);
+  const [currentScreen, setCurrentScreen] = useState<'dashboard' | 'deploying' | 'monitoring'>(
+    'dashboard'
+  );
   const [activeAgent, setActiveAgent] = useState<string | null>(null);
 
   const marketDataRef = useRef<TickerData | null>(null);
@@ -1051,7 +1177,7 @@ export const TradingDashboard = () => {
   const handleCommand = async (cmd: string) => {
     // 1. Global Commands take precedence
     if (cmd.includes('deploy')) {
-      setIsDeploying(true);
+      setCurrentScreen('deploying');
       return;
     }
 
@@ -1130,7 +1256,7 @@ export const TradingDashboard = () => {
   };
 
   const onDeployComplete = useCallback(() => {
-    setIsDeploying(false);
+    setCurrentScreen('monitoring');
     setPanelState({
       title: 'AI PREDICTION',
       content: null,
@@ -1138,7 +1264,7 @@ export const TradingDashboard = () => {
     });
   }, []);
 
-  if (isDeploying) {
+  if (currentScreen === 'deploying') {
     return (
       <Box
         flexDirection="column"
@@ -1149,6 +1275,12 @@ export const TradingDashboard = () => {
       >
         <DeploymentOverlay onComplete={onDeployComplete} />
       </Box>
+    );
+  }
+
+  if (currentScreen === 'monitoring') {
+    return (
+      <MonitoringDashboard onExit={() => setCurrentScreen('dashboard')} activeAgent={activeAgent} />
     );
   }
 
